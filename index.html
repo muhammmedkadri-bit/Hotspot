@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>HS Ultra - Hybrid Anchor</title>
+    <title>HS Ultra - Ultimate Anchor</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -53,19 +53,18 @@
             font-size: 13px;
             font-weight: 700;
             border: 1px solid #333;
-            margin-bottom: 10px;
         }
 
         .status-pill.active { border-color: var(--blue); color: var(--blue); }
         .status-pill.idle { border-color: var(--red); color: var(--red); }
 
         .led { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-        .active .led { animation: pulse 1.5s infinite; }
+        .active .led { animation: pulse 1s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
         .big-btn {
-            width: 200px;
-            height: 200px;
+            width: 180px;
+            height: 180px;
             border-radius: 50%;
             border: 6px solid var(--surface);
             background: var(--bg);
@@ -75,17 +74,18 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 900;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             -webkit-tap-highlight-color: transparent;
             cursor: pointer;
+            z-index: 10;
         }
 
-        .big-btn.active { border-color: var(--blue); box-shadow: 0 0 40px rgba(10, 132, 255, 0.2); }
-        .big-btn.idle { border-color: var(--red); }
+        .big-btn:active { transform: scale(0.96); }
+        .big-btn.active { border-color: var(--blue); box-shadow: 0 0 30px rgba(10, 132, 255, 0.3); }
 
-        .stats-container {
+        .stats {
             width: 100%;
             max-width: 320px;
             display: grid;
@@ -93,191 +93,216 @@
             gap: 10px;
         }
 
-        .stat-card {
+        .card {
             background: var(--surface);
             padding: 15px;
-            border-radius: 20px;
+            border-radius: 18px;
             text-align: center;
             border: 1px solid #222;
         }
 
-        .stat-val { display: block; font-size: 24px; font-weight: 800; color: #fff; }
-        .stat-lbl { font-size: 10px; color: #666; text-transform: uppercase; margin-top: 4px; }
+        .val { display: block; font-size: 22px; font-weight: 800; color: #fff; }
+        .lbl { font-size: 9px; color: #666; text-transform: uppercase; margin-top: 4px; }
+
+        #pwa-warning {
+            background: var(--orange);
+            color: #000;
+            padding: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            display: none;
+        }
 
         .console {
-            height: 140px;
+            height: 120px;
             background: #050505;
             border-top: 1px solid #1a1a1a;
             padding: 10px;
-            font-family: 'Menlo', 'Courier New', monospace;
+            font-family: 'Menlo', monospace;
             font-size: 10px;
             overflow-y: auto;
             display: flex;
             flex-direction: column-reverse;
         }
 
-        .log { margin-bottom: 4px; border-left: 2px solid transparent; padding-left: 6px; }
-        .log.success { border-color: var(--green); color: #cfc; }
-        .log.info { border-color: var(--blue); color: #cde; }
-        .log.error { border-color: var(--red); color: #fcc; }
-        .log.gps { border-color: var(--orange); color: #fed; }
+        .log { margin-bottom: 2px; }
+        .log.gps { color: var(--orange); }
+        .log.net { color: var(--blue); }
+        .log.err { color: var(--red); }
     </style>
 </head>
 <body>
 
+    <div id="pwa-warning">Lütfen bu uygulamayı 'Ana Ekrana Ekle' yaparak kullanın! Arka planda çalışma sadece bu modda aktiftir.</div>
     <div class="safe-top"></div>
     
     <div class="container">
-        <div id="statusIndicator" class="status-pill idle">
+        <div id="indicator" class="status-pill idle">
             <div class="led"></div>
-            HİBRİT ÇAPA: <span id="statusTxt">BEKLEMEDE</span>
+            SİSTEM <span id="statusTxt">BEKLEMEDE</span>
         </div>
 
         <button id="mainBtn" class="big-btn idle">
             <span id="btnTxt">BAŞLAT</span>
         </button>
 
-        <div class="stats-container">
-            <div class="stat-card">
-                <span id="pingCounter" class="stat-val">0</span>
-                <span class="stat-lbl">AĞ TRAFİĞİ</span>
+        <div class="stats">
+            <div class="card">
+                <span id="pingVal" class="val">0</span>
+                <span class="lbl">AĞ PAKETİ</span>
             </div>
-            <div class="stat-card">
-                <span id="gpsCounter" class="stat-val">OFF</span>
-                <span class="stat-lbl">GPS DURUMU</span>
+            <div class="card">
+                <span id="gpsVal" class="val">---</span>
+                <span class="lbl">KONUM SİNYALİ</span>
             </div>
         </div>
 
-        <p style="font-size: 10px; color: #444; text-align: center; max-width: 280px; margin: 0;">
-            <b>iOS Arka Plan Kilidi:</b> Bu mod hem sessiz ses (JS Stay-Alive) hem de GPS (OS Stay-Alive) kullanarak Hotspot bağlantısını korur.
-        </p>
+        <div style="text-align: center; padding: 0 20px;">
+            <p style="font-size: 10px; color: #555; margin: 0; line-height: 1.4;">
+                <b style="color:#888">NASIL ÇALIŞIR?</b><br>
+                iOS'u kandırmak için Web Audio API üzerinden 0 ses seviyesinde sürekli sinyal üretilir ve GPS kanalı açık tutulur. Bu, Hotspot'un "bağlı cihaz yok" uykusuna girmesini engeller.
+            </p>
+        </div>
     </div>
 
     <div id="console" class="console"></div>
     <div class="safe-bottom"></div>
 
-    <audio id="silentPlayer" loop playsinline>
-        <source src="data:audio/wav;base64,UklGRigAAABXQVZFWm50IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
-    </audio>
-
     <script>
-        let active = false;
-        let pings = 0;
-        let pingInterval = null;
-        let geoWatchId = null;
-        const audio = document.getElementById('silentPlayer');
-        
+        let isActive = false;
+        let pingCount = 0;
+        let watchId = null;
+        let networkTimer = null;
+        let audioCtx = null;
+        let oscillator = null;
+
+        // UI Elements
         const mainBtn = document.getElementById('mainBtn');
-        const statusIndicator = document.getElementById('statusIndicator');
         const statusTxt = document.getElementById('statusTxt');
         const btnTxt = document.getElementById('btnTxt');
-        const pingDisplay = document.getElementById('pingCounter');
-        const gpsDisplay = document.getElementById('gpsCounter');
+        const indicator = document.getElementById('indicator');
+        const pingVal = document.getElementById('pingVal');
+        const gpsVal = document.getElementById('gpsVal');
         const consoleEl = document.getElementById('console');
+
+        // PWA check
+        if (!window.navigator.standalone && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
+            document.getElementById('pwa-warning').style.display = 'block';
+        }
 
         function log(msg, type = '') {
             const d = document.createElement('div');
             d.className = `log ${type}`;
-            d.innerText = `[${new Date().toLocaleTimeString('tr-TR', {hour12:false})}] ${msg}`;
+            d.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
             consoleEl.prepend(d);
-            if(consoleEl.children.length > 30) consoleEl.lastChild.remove();
+            if(consoleEl.children.length > 20) consoleEl.lastChild.remove();
         }
 
-        async function requestGPS() {
-            return new Promise((resolve) => {
-                log("GPS sinyali aranıyor...", "info");
-                navigator.geolocation.getCurrentPosition(
-                    (p) => {
-                        log("GPS İlk Kilidi: " + p.coords.latitude.toFixed(4) + ", " + p.coords.longitude.toFixed(4), "gps");
-                        resolve(true);
+        // Web Audio API ile sistemin medya kanalını işgal etme
+        function startAudioEngine() {
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.0001, audioCtx.currentTime); // Duyulmayacak kadar kısık ama aktif
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                oscillator.start();
+                log("Audio Engine: AKTİF", "net");
+            } catch (e) {
+                log("Audio Hatası: " + e.message, "err");
+            }
+        }
+
+        function stopAudioEngine() {
+            if (oscillator) oscillator.stop();
+            if (audioCtx) audioCtx.close();
+            log("Audio Engine: DURDU");
+        }
+
+        async function toggleSystem() {
+            if (!isActive) {
+                // Başlatma
+                log("Sistem başlatılıyor...", "net");
+                
+                // 1. Konum İzni ve Takibi
+                watchId = navigator.geolocation.watchPosition(
+                    (pos) => {
+                        gpsVal.innerText = "ALINDI";
+                        gpsVal.style.color = "var(--green)";
+                        if(pingCount % 3 === 0) log(`GPS: ${pos.coords.latitude.toFixed(3)} ok`, "gps");
                     },
-                    (e) => {
-                        log("GPS Hatası: " + e.message, "error");
-                        resolve(false);
+                    (err) => {
+                        log("GPS Hatası: " + err.message, "err");
+                        gpsVal.innerText = "HATA";
                     },
-                    { enableHighAccuracy: true, timeout: 10000 }
+                    { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
                 );
-            });
-        }
 
-        function startMechanisms() {
-            // 1. Audio Start (JS Engine Alive)
-            audio.play().catch(e => log("Ses başlatılamadı!", "error"));
-            log("Sessiz ses döngüsü başladı.", "info");
+                // 2. Audio Engine (iOS uyanık kalma garantisi)
+                startAudioEngine();
 
-            // 2. GPS Watch (System Alive)
-            geoWatchId = navigator.geolocation.watchPosition(
-                (p) => {
-                    gpsDisplay.innerText = "OK";
-                    gpsDisplay.style.color = "var(--green)";
-                    // Arka planda çalışıp çalışmadığını anlamak için periyodik koordinat logu
-                    if(pings % 5 === 0) log(`GPS Güncel: ${p.coords.latitude.toFixed(2)}`, "gps");
-                },
-                (e) => {
-                    gpsDisplay.innerText = "ERR";
-                    gpsDisplay.style.color = "var(--red)";
-                    log("GPS koptu: " + e.message, "error");
-                },
-                { enableHighAccuracy: true, maximumAge: 0 }
-            );
+                // 3. Network Traffic (Hotspot garantisi)
+                networkTimer = setInterval(async () => {
+                    try {
+                        await fetch(`https://www.google.com/generate_204?t=${Date.now()}`, { mode: 'no-cors' });
+                        pingCount++;
+                        pingVal.innerText = pingCount;
+                    } catch(e) {}
+                }, 8000);
 
-            // 3. Network Traffic (Hotspot Alive)
-            pingInterval = setInterval(async () => {
-                try {
-                    await fetch(`https://www.google.com/generate_204?cb=${Date.now()}`, { 
-                        mode: 'no-cors', cache: 'no-store' 
-                    });
-                    pings++;
-                    pingDisplay.innerText = pings;
-                } catch (e) {}
-            }, 5000);
-        }
-
-        function stopMechanisms() {
-            audio.pause();
-            if (geoWatchId !== null) navigator.geolocation.clearWatch(geoWatchId);
-            if (pingInterval) clearInterval(pingInterval);
-            gpsDisplay.innerText = "OFF";
-            gpsDisplay.style.color = "";
-        }
-
-        async function handleToggle() {
-            if (!active) {
-                const hasGPS = await requestGPS();
-                if (!hasGPS) {
-                    alert("Lütfen konum izni verin. Hotspot'un açık kalması için bu gereklidir.");
-                    return;
-                }
-
-                active = true;
-                startMechanisms();
-
-                mainBtn.classList.replace('idle', 'active');
-                statusIndicator.classList.replace('idle', 'active');
-                statusTxt.innerText = "AKTİF";
-                btnTxt.innerText = "DURDUR";
-                log("HİBRİT ÇAPA AKTİF.", "success");
+                isActive = true;
+                updateUI(true);
             } else {
-                active = false;
-                stopMechanisms();
-
-                mainBtn.classList.replace('active', 'idle');
-                statusIndicator.classList.replace('active', 'idle');
-                statusTxt.innerText = "BEKLEMEDE";
-                btnTxt.innerText = "BAŞLAT";
+                // Durdurma
+                stopAudioEngine();
+                if (watchId) navigator.geolocation.clearWatch(watchId);
+                if (networkTimer) clearInterval(networkTimer);
+                
+                isActive = false;
+                updateUI(false);
                 log("Sistem durduruldu.");
             }
         }
 
-        mainBtn.addEventListener('click', handleToggle);
-
-        // iOS kilit ekranı ve uygulama geçişleri için log
-        document.addEventListener('visibilitychange', () => {
+        function updateUI(active) {
             if (active) {
-                const state = document.visibilityState;
-                log(`Uygulama Durumu: ${state}`, "info");
+                mainBtn.classList.add('active');
+                indicator.classList.replace('idle', 'active');
+                statusTxt.innerText = "AKTİF";
+                btnTxt.innerText = "DURDUR";
+            } else {
+                mainBtn.classList.remove('active');
+                indicator.classList.replace('active', 'idle');
+                statusTxt.innerText = "BEKLEMEDE";
+                btnTxt.innerText = "BAŞLAT";
+                gpsVal.innerText = "---";
+                gpsVal.style.color = "";
             }
-        });
+        }
+
+        mainBtn.addEventListener('click', toggleSystem);
+
+        // Manifest injection
+        const manifest = { 
+            "name": "Hotspot Ultra Pro", 
+            "short_name": "HS Ultra", 
+            "display": "standalone", 
+            "start_url": ".",
+            "background_color": "#000000", 
+            "theme_color": "#000000" 
+        };
+        const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = URL.createObjectURL(blob);
+        document.head.appendChild(link);
     </script>
 </body>
 </html>
