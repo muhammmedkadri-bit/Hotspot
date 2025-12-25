@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hotspot Pro Ultra</title>
+    <title>HS Ultra</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -28,9 +28,11 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            -webkit-user-select: none;
-            user-select: none;
+            transition: opacity 0.5s ease;
         }
+
+        .stealth-active { cursor: none; }
+        .stealth-active .container, .stealth-active .console { opacity: 0; pointer-events: none; }
 
         .safe-top { padding-top: env(safe-area-inset-top); }
         .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
@@ -42,6 +44,7 @@
             align-items: center;
             justify-content: space-evenly;
             padding: 20px;
+            transition: opacity 0.3s ease;
         }
 
         .status-pill {
@@ -63,25 +66,25 @@
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
 
         .big-btn {
-            width: 220px;
-            height: 220px;
+            width: 200px;
+            height: 200px;
             border-radius: 50%;
-            border: 8px solid var(--surface);
+            border: 6px solid var(--surface);
             background: var(--bg);
             color: #fff;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 15px;
-            font-size: 24px;
+            gap: 12px;
+            font-size: 20px;
             font-weight: 900;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             outline: none;
             -webkit-tap-highlight-color: transparent;
         }
 
-        .big-btn.active { border-color: var(--green); transform: scale(1.05); box-shadow: 0 0 30px rgba(48, 209, 88, 0.2); }
+        .big-btn.active { border-color: var(--green); box-shadow: 0 0 40px rgba(48, 209, 88, 0.15); }
         .big-btn.idle { border-color: var(--red); }
 
         .stats {
@@ -89,43 +92,53 @@
             grid-template-columns: 1fr 1fr;
             gap: 15px;
             width: 100%;
-            max-width: 360px;
+            max-width: 320px;
         }
 
         .stat-item {
             background: var(--surface);
-            padding: 15px;
-            border-radius: 20px;
+            padding: 12px;
+            border-radius: 18px;
             text-align: center;
             border: 1px solid #222;
         }
 
-        .stat-val { display: block; font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
-        .stat-lbl { font-size: 10px; color: #888; text-transform: uppercase; margin-top: 5px; }
+        .stat-val { display: block; font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .stat-lbl { font-size: 9px; color: #888; text-transform: uppercase; margin-top: 4px; }
+
+        .stealth-btn {
+            background: transparent;
+            color: #444;
+            border: 1px solid #222;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-top: 10px;
+        }
 
         .console {
-            height: 140px;
-            background: #080808;
-            border-top: 1px solid #222;
-            padding: 12px;
+            height: 120px;
+            background: #050505;
+            border-top: 1px solid #1a1a1a;
+            padding: 10px;
             font-family: 'SF Mono', monospace;
             font-size: 10px;
             overflow-y: auto;
             display: flex;
             flex-direction: column-reverse;
+            transition: opacity 0.3s ease;
         }
 
-        .log { border-left: 2px solid #333; padding-left: 8px; margin-bottom: 4px; }
-        .log.success { color: var(--green); border-left-color: var(--green); }
-        .log.info { color: var(--blue); border-left-color: var(--blue); }
-        .log.error { color: var(--red); border-left-color: var(--red); }
+        .log { margin-bottom: 4px; color: #666; }
+        .log.success { color: var(--green); }
+        .log.error { color: var(--red); }
     </style>
 </head>
 <body>
 
     <div class="safe-top"></div>
     
-    <div class="container">
+    <div class="container" id="mainContainer">
         <div id="statusIndicator" class="status-pill idle">
             <div class="led"></div>
             HOTSPOT: <span id="statusTxt">PASİF</span>
@@ -138,23 +151,25 @@
         <div class="stats">
             <div class="stat-item">
                 <span id="pingCounter" class="stat-val">0</span>
-                <span class="stat-lbl">Ping Trafiği</span>
+                <span class="stat-lbl">Trafik</span>
             </div>
             <div class="stat-item">
                 <span id="lastTime" class="stat-val">--:--</span>
-                <span class="stat-lbl">Son Aktivite</span>
+                <span class="stat-lbl">Son Paket</span>
             </div>
         </div>
 
-        <div style="font-size: 11px; color: #666; text-align: center; line-height: 1.6; max-width: 85%;">
-            <b>iOS KRİTİK:</b> Uygulamayı <u>Ana Ekrana Ekleyip</u> oradan açın. Ses seviyesini en az %5 yapın ve Düşük Güç Modunu kapatın.
-        </div>
+        <button id="stealthBtn" class="stealth-btn">GİZLİLİK MODU (OLED)</button>
+
+        <p style="font-size: 10px; color: #444; text-align: center; margin: 0 20px;">
+            Medya panelini gizlemek için başlıklar boşluk olarak ayarlandı. 
+            Çalışması için sesin 1 kademe açık olması önerilir.
+        </p>
     </div>
 
     <div id="console" class="console"></div>
     <div class="safe-bottom"></div>
 
-    <!-- Bu ses elementi MediaStream tarafından beslenecek -->
     <audio id="audioElement" loop playsinline style="display:none"></audio>
 
     <script>
@@ -163,9 +178,10 @@
         let pingInterval = null;
         let audioCtx = null;
         let noiseSource = null;
-        let streamDest = null;
+        let isStealth = false;
 
         const mainBtn = document.getElementById('mainBtn');
+        const stealthBtn = document.getElementById('stealthBtn');
         const statusIndicator = document.getElementById('statusIndicator');
         const statusTxt = document.getElementById('statusTxt');
         const btnTxt = document.getElementById('btnTxt');
@@ -179,73 +195,67 @@
             d.className = `log ${type}`;
             d.innerText = `[${new Date().toLocaleTimeString('tr-TR', {hour12:false})}] ${msg}`;
             consoleEl.prepend(d);
-            if(consoleEl.children.length > 30) consoleEl.lastChild.remove();
+            if(consoleEl.children.length > 20) consoleEl.lastChild.remove();
         }
 
-        // iPhone için "Canlı Ses Akışı" motoru
         async function startEngine() {
             try {
                 if (!audioCtx) {
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
                 }
-                
-                if (audioCtx.state === 'suspended') {
-                    await audioCtx.resume();
-                }
+                if (audioCtx.state === 'suspended') await audioCtx.resume();
 
-                // 1. İşitilemez Gürültü Oluştur (Brown Noise)
-                const bufferSize = 2 * audioCtx.sampleRate;
-                const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                const output = noiseBuffer.getChannelData(0);
+                // Brown noise + 18Hz sine (İnsan kulağı duymaz)
+                const bufferSize = audioCtx.sampleRate * 2;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
                 let lastOut = 0;
                 for (let i = 0; i < bufferSize; i++) {
                     const white = Math.random() * 2 - 1;
-                    output[i] = (lastOut + (0.02 * white)) / 1.02;
-                    lastOut = output[i];
-                    output[i] *= 0.5; // Volümü optimize et
+                    data[i] = (lastOut + (0.02 * white)) / 1.02;
+                    lastOut = data[i];
+                    data[i] *= 0.1; 
                 }
 
                 noiseSource = audioCtx.createBufferSource();
-                noiseSource.buffer = noiseBuffer;
+                noiseSource.buffer = buffer;
                 noiseSource.loop = true;
 
-                // 2. Çok düşük frekanslı bir nabız (15Hz)
                 const osc = audioCtx.createOscillator();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(15, audioCtx.currentTime);
+                osc.frequency.value = 18;
 
-                const gainNode = audioCtx.createGain();
-                gainNode.gain.setValueAtTime(0.01, audioCtx.currentTime); // Duyulmaz ama aktif
+                const gain = audioCtx.createGain();
+                gain.gain.value = 0.005;
 
-                // 3. MediaStream'e yönlendir (iOS buna "Canlı Yayın" muamelesi yapar)
-                streamDest = audioCtx.createMediaStreamDestination();
-                
-                noiseSource.connect(gainNode);
-                osc.connect(gainNode);
-                gainNode.connect(streamDest);
-                gainNode.connect(audioCtx.destination); // Fiziksel çıkışa da ver (ama sessiz)
+                const dest = audioCtx.createMediaStreamDestination();
+                noiseSource.connect(gain);
+                osc.connect(gain);
+                gain.connect(dest);
+                gain.connect(audioCtx.destination);
 
                 noiseSource.start();
                 osc.start();
 
-                // 4. HTML Audio Elementi ile Stream'i birleştir
-                audioEl.srcObject = streamDest.stream;
+                audioEl.srcObject = dest.stream;
                 await audioEl.play();
 
-                log("Medya Motoru: ONLINE", "success");
+                log("Motor aktif edildi.", "success");
                 updateMediaSession();
             } catch (e) {
-                log("Motor Hatası: " + e.message, "error");
+                log("Hata: " + e.message, "error");
             }
         }
 
         function updateMediaSession() {
             if ('mediaSession' in navigator) {
+                // HİLE: Başlıkları ve sanatçıyı boşluk yaparak kontrol panelini kamufle ediyoruz
                 navigator.mediaSession.metadata = new MediaMetadata({
-                    title: 'Hotspot Koruma Aktif',
-                    artist: 'HS Ultra Pro',
-                    album: `Akış Durumu: ${pings} Sinyal`,
-                    artwork: [{ src: 'https://www.google.com/favicon.ico', sizes: '512x512', type: 'image/png' }]
+                    title: ' ', 
+                    artist: ' ',
+                    album: active ? '⚡ Koruma Aktif' : ' ',
+                    artwork: [
+                        { src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', sizes: '1x1', type: 'image/png' }
+                    ]
                 });
                 navigator.mediaSession.playbackState = active ? 'playing' : 'paused';
             }
@@ -254,88 +264,78 @@
         async function sendPing() {
             if (!active) return;
             try {
-                // iOS WiFi kanalını "uyandıracak" gerçek paket trafiği
-                const response = await fetch(`https://www.google.com/generate_204?cache=${Date.now()}`, { 
+                await fetch(`https://www.google.com/generate_204?q=${Date.now()}`, { 
                     mode: 'no-cors', 
                     cache: 'no-store',
                     priority: 'high'
                 });
-                
                 pings++;
                 pingDisplay.innerText = pings;
                 timeDisplay.innerText = new Date().toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
-                
-                // Her pingde sistemi tazele
-                updateMediaSession();
-                log(`Sinyal iletildi (#${pings})`, "info");
+                if(pings % 5 === 0) updateMediaSession();
+                log(`Paket iletildi (#${pings})`);
             } catch (e) {
-                log("Sinyal kesildi!", "error");
+                log("Ağ hatası!", "error");
             }
         }
 
-        async function handleToggle() {
+        function handleToggle() {
             if (!active) {
-                // START
                 active = true;
-                log("Sistem uyandırılıyor...");
-                
-                // Önce ses motorunu ateşle (User gesture içinde kalmalı)
-                await startEngine();
-                
-                // Sonra ping döngüsünü başlat
-                if (pingInterval) clearInterval(pingInterval);
+                startEngine();
                 pingInterval = setInterval(sendPing, 4000);
-                
                 mainBtn.className = 'big-btn active';
                 statusIndicator.className = 'status-pill active';
                 statusTxt.innerText = "ONLINE";
                 btnTxt.innerText = "DURDUR";
-                
                 sendPing();
             } else {
-                // STOP
                 active = false;
-                if (pingInterval) clearInterval(pingInterval);
+                clearInterval(pingInterval);
                 if (noiseSource) try { noiseSource.stop(); } catch(e){}
                 audioEl.pause();
-                audioEl.srcObject = null;
-                
                 updateMediaSession();
-                
                 mainBtn.className = 'big-btn idle';
                 statusIndicator.className = 'status-pill idle';
                 statusTxt.innerText = "PASİF";
                 btnTxt.innerText = "BAŞLAT";
-                
-                log("Koruma durduruldu.", "error");
+                log("Sistem kapatıldı.", "error");
             }
         }
 
+        // Stealth Mode Toggle
+        stealthBtn.addEventListener('click', () => {
+            isStealth = !isStealth;
+            document.body.classList.toggle('stealth-active', isStealth);
+            if(isStealth) {
+                log("Gizlilik Modu: Ekrana dokunarak çıkabilirsiniz.");
+            }
+        });
+
+        // Stealth moddan çıkış için ekrana dokunma
+        document.body.addEventListener('click', (e) => {
+            if(isStealth && e.target !== stealthBtn) {
+                isStealth = false;
+                document.body.classList.remove('stealth-active');
+            }
+        });
+
         mainBtn.addEventListener('click', (e) => {
-            e.preventDefault();
+            e.stopPropagation();
             handleToggle();
         });
 
-        // PWA Manifest Inject
-        const manifest = {
-            "name": "Hotspot Ultra",
-            "short_name": "HS Ultra",
-            "start_url": ".",
-            "display": "standalone",
-            "background_color": "#000000",
-            "theme_color": "#000000"
-        };
+        // Manifest
+        const manifest = { "name": "HS Ultra", "short_name": "HS Ultra", "start_url": ".", "display": "standalone", "background_color": "#000000", "theme_color": "#000000" };
         const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
         const link = document.createElement('link');
         link.rel = 'manifest';
         link.href = URL.createObjectURL(blob);
         document.head.appendChild(link);
-        
-        // Arka plandan geri dönüldüğünde motoru tazele
+
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible' && active && audioCtx) {
                 audioCtx.resume();
-                if(audioEl.paused) audioEl.play();
             }
         });
     </script>
