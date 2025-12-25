@@ -1,0 +1,6 @@
+{
+  "name": "Hotspot Keep-Alive",
+  "short_name": "HS Keep",
+  "description": "iOS cihazlarda Hotspot'un kapanmasını önlemek için arka planda sessiz ses ve ping trafiği oluşturur.",
+  "requestFramePermissions": []
+}

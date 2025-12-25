@@ -1,0 +1,1 @@
+// File removed because it's replaced by single index.html logic

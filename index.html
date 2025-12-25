@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Hotspot Keep-Alive</title>
+    
+    <!-- iOS PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HS Keep">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <style>
+        :root {
+            --ios-safe-top: env(safe-area-inset-top);
+            --ios-safe-bottom: env(safe-area-inset-bottom);
+            --bg-color: #000000;
+            --accent-green: #30d158;
+            --accent-red: #ff453a;
+            --surface-color: #1c1c1e;
+            --text-color: #ffffff;
+            --text-secondary: #8e8e93;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .safe-padding-top { padding-top: calc(1rem + var(--ios-safe-top)); }
+        .safe-padding-bottom { padding-bottom: calc(1rem + var(--ios-safe-bottom)); }
+
+        header {
+            padding: 1.5rem 1.5rem 1rem;
+            text-align: center;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--surface-color);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            border: 1px solid #333;
+        }
+
+        .status-badge.active {
+            color: var(--accent-green);
+            border-color: var(--accent-green);
+            box-shadow: 0 0 15px rgba(48, 209, 88, 0.2);
+        }
+
+        .status-badge.passive {
+            color: var(--accent-red);
+            border-color: var(--accent-red);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .dot.pulse {
+            animation: pulse-animation 2s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            gap: 40px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            width: 100%;
+            max-width: 350px;
+        }
+
+        .stat-card {
+            background: var(--surface-color);
+            padding: 20px;
+            border-radius: 24px;
+            text-align: center;
+            border: 1px solid #2c2c2e;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 4px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-button {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-weight: 800;
+            font-size: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            background: var(--surface-color);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+
+        .control-button::after {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            border-radius: 50%;
+            border: 4px solid transparent;
+            transition: all 0.4s;
+        }
+
+        .control-button.start {
+            color: var(--accent-green);
+        }
+        .control-button.start::after { border-color: var(--accent-green); opacity: 0.3; }
+
+        .control-button.stop {
+            color: var(--accent-red);
+        }
+        .control-button.stop::after { border-color: var(--accent-red); opacity: 0.3; }
+
+        .control-button:active {
+            transform: scale(0.92);
+        }
+
+        .log-container {
+            width: 100%;
+            background: #0a0a0a;
+            border-top: 1px solid #1c1c1e;
+            height: 180px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .log-header {
+            padding: 10px 20px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            border-bottom: 1px solid #111;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .log-content {
+            flex: 1;
+            padding: 12px 20px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 11px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 6px;
+        }
+
+        .log-entry {
+            line-height: 1.4;
+            animation: slideIn 0.2s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-5px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .text-green { color: var(--accent-green); }
+        .text-red { color: var(--accent-red); }
+        .text-dim { color: #444; }
+
+        .icon-svg {
+            width: 48px;
+            height: 48px;
+            fill: currentColor;
+        }
+    </style>
+</head>
+<body class="safe-padding-top safe-padding-bottom">
+
+    <header>
+        <div id="statusBadge" class="status-badge passive">
+            <div id="statusDot" class="dot"></div>
+            SİSTEM DURUMU: <span id="statusText">PASİF</span>
+        </div>
+    </header>
+
+    <main>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span id="pingCounter" class="stat-value">0</span>
+                <span class="stat-label">Toplam Ping</span>
+            </div>
+            <div class="stat-card">
+                <span id="lastTime" class="stat-value">--:--</span>
+                <span class="stat-label">Son Aktivite</span>
+            </div>
+        </div>
+
+        <button id="mainBtn" class="control-button start">
+            <svg class="icon-svg" viewBox="0 0 24 24">
+                <path d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"/>
+            </svg>
+            <span id="btnLabel">Başlat</span>
+        </button>
+
+        <p style="text-align: center; color: var(--text-secondary); font-size: 10px; padding: 0 40px; line-height: 1.5;">
+            "Başlat" butonuna bastığınızda arka planda sessiz bir frekans üretilir ve ağ trafiği tetiklenir.
+        </p>
+    </main>
+
+    <div class="log-container">
+        <div class="log-header">
+            <span>Canlı Sistem Günlüğü</span>
+            <span id="clearLogs" style="cursor: pointer;">TEMİZLE</span>
+        </div>
+        <div id="logContent" class="log-content">
+            <div class="log-entry text-dim">Sistem hazır. Başlatılması bekleniyor...</div>
+        </div>
+    </div>
+
+    <script>
+        // --- PWA MANIFEST INJECTION ---
+        const manifest = {
+            "name": "Hotspot Keep-Alive",
+            "short_name": "HS Keep",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#000000",
+            "theme_color": "#000000",
+            "icons": [{ "src": "https://img.icons8.com/ios-filled/512/FFFFFF/wifi-router.png", "sizes": "512x512", "type": "image/png" }]
+        };
+        const stringManifest = JSON.stringify(manifest);
+        const blob = new Blob([stringManifest], {type: 'application/json'});
+        const manifestURL = URL.createObjectURL(blob);
+        const linkManifest = document.createElement('link');
+        linkManifest.setAttribute('rel', 'manifest');
+        linkManifest.setAttribute('href', manifestURL);
+        document.head.appendChild(linkManifest);
+
+        // --- CORE LOGIC ---
+        let isActive = false;
+        let pingCount = 0;
+        let audioCtx = null;
+        let oscillator = null;
+        let gainNode = null;
+        let pingInterval = null;
+
+        const mainBtn = document.getElementById('mainBtn');
+        const btnLabel = document.getElementById('btnLabel');
+        const statusBadge = document.getElementById('statusBadge');
+        const statusText = document.getElementById('statusText');
+        const statusDot = document.getElementById('statusDot');
+        const logContent = document.getElementById('logContent');
+        const pingCounter = document.getElementById('pingCounter');
+        const lastTimeDisplay = document.getElementById('lastTime');
+        const clearLogsBtn = document.getElementById('clearLogs');
+
+        function addLog(msg, type = 'default') {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            if (type === 'error') entry.classList.add('text-red');
+            if (type === 'success') entry.classList.add('text-green');
+            
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString('tr-TR', { hour12: false });
+            entry.innerHTML = `<span class="text-dim">[${timestamp}]</span> ${msg}`;
+            logContent.prepend(entry);
+        }
+
+        async function initAudio() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                if (audioCtx.state === 'suspended') {
+                    await audioCtx.resume();
+                }
+
+                // Create silent signal
+                oscillator = audioCtx.createOscillator();
+                gainNode = audioCtx.createGain();
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // Standard frequency
+                gainNode.gain.setValueAtTime(0.001, audioCtx.currentTime); // Almost silent (0.001 to keep engine busy)
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.start();
+
+                addLog("Web Audio API aktifleşti (Sessiz mod)", "success");
+                return true;
+            } catch (e) {
+                addLog("Audio Hatası: " + e.message, "error");
+                return false;
+            }
+        }
+
+        function stopAudio() {
+            if (oscillator) {
+                oscillator.stop();
+                oscillator.disconnect();
+            }
+            if (gainNode) {
+                gainNode.disconnect();
+            }
+            addLog("Ses motoru durduruldu.");
+        }
+
+        async function performPing() {
+            const url = `https://www.google.com/generate_204?nocache=${Date.now()}`;
+            try {
+                const response = await fetch(url, {
+                    mode: 'no-cors',
+                    cache: 'no-store',
+                    credentials: 'omit'
+                });
+                
+                pingCount++;
+                pingCounter.innerText = pingCount;
+                
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                lastTimeDisplay.innerText = timeStr;
+                
+                addLog(`Ping başarılı (ID: ${pingCount})`, "success");
+            } catch (e) {
+                addLog("Ping hatası: " + e.message, "error");
+            }
+        }
+
+        function toggleSystem() {
+            if (!isActive) {
+                // START
+                initAudio().then(success => {
+                    if (success) {
+                        isActive = true;
+                        updateUI();
+                        performPing();
+                        pingInterval = setInterval(performPing, 5000);
+                        addLog("Keep-Alive döngüsü başlatıldı.");
+                    }
+                });
+            } else {
+                // STOP
+                isActive = false;
+                stopAudio();
+                clearInterval(pingInterval);
+                updateUI();
+                addLog("Sistem durduruldu.");
+            }
+        }
+
+        function updateUI() {
+            if (isActive) {
+                mainBtn.classList.replace('start', 'stop');
+                btnLabel.innerText = "DURDUR";
+                statusBadge.classList.replace('passive', 'active');
+                statusText.innerText = "AKTİF";
+                statusDot.classList.add('pulse');
+            } else {
+                mainBtn.classList.replace('stop', 'start');
+                btnLabel.innerText = "BAŞLAT";
+                statusBadge.classList.replace('active', 'passive');
+                statusText.innerText = "PASİF";
+                statusDot.classList.remove('pulse');
+            }
+        }
+
+        mainBtn.addEventListener('click', toggleSystem);
+        clearLogsBtn.addEventListener('click', () => {
+            logContent.innerHTML = '<div class="log-entry text-dim">Günlük temizlendi.</div>';
+        });
+
+        // Prevention of accidental scrolling
+        document.addEventListener('touchmove', (e) => {
+            if (!e.target.closest('.log-content')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+    </script>
+</body>
+</html>
