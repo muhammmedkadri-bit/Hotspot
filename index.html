@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>HS Ultra Pro - Silent</title>
+    <title>HS Ultra Pro - Resilient</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -60,11 +60,12 @@
         }
 
         .status-pill.active { border-color: var(--green); color: var(--green); }
+        .status-pill.interrupted { border-color: var(--orange); color: var(--orange); }
         .status-pill.idle { border-color: var(--red); color: var(--red); }
-        .status-pill.power-save { border-color: var(--orange); color: var(--orange); }
 
         .led { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
         .active .led { animation: blink 1s infinite; }
+        .interrupted .led { animation: blink 0.3s infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
 
         .big-btn {
@@ -132,6 +133,7 @@
 
         .log { margin-bottom: 3px; color: #333; }
         .log.success { color: var(--green); }
+        .log.warning { color: var(--orange); }
         .log.info { color: var(--blue); }
     </style>
 </head>
@@ -142,7 +144,7 @@
     <div class="container" id="mainContainer">
         <div id="statusIndicator" class="status-pill idle">
             <div class="led"></div>
-            KORUMA: <span id="statusTxt">PASİF</span>
+            DURUM: <span id="statusTxt">PASİF</span>
         </div>
 
         <button id="mainBtn" class="big-btn idle">
@@ -163,9 +165,9 @@
         <button id="stealthBtn" class="stealth-btn">GİZLİLİK MODU (OLED)</button>
 
         <div style="text-align: center; padding: 0 30px;">
-            <p style="font-size: 10px; color: #444; margin: 0; line-height: 1.5;">
-                <b>Mutlak Sessizlik:</b> 1Hz sinyal + ultra düşük kazanç.<br>
-                Ses en sondayken dahi duyulması donanımsal olarak imkansızdır.
+            <p id="safetyMsg" style="font-size: 10px; color: #444; margin: 0; line-height: 1.5;">
+                <b>Otomatik Kurtarma:</b> Aktif.<br>
+                Diğer medya sesleri bittiğinde sistem kendini onaracaktır.
             </p>
         </div>
     </div>
@@ -206,54 +208,102 @@
             if(consoleEl.children.length > 15) consoleEl.lastChild.remove();
         }
 
-        async function startEngine() {
+        async function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+                
+                // Ses durumu değişikliğini izle (Interruption Takibi)
+                audioCtx.onstatechange = () => {
+                    log(`Ses Durumu: ${audioCtx.state.toUpperCase()}`, audioCtx.state === 'running' ? 'success' : 'warning');
+                    if (active && audioCtx.state === 'suspended') {
+                        statusIndicator.className = 'status-pill interrupted';
+                        statusTxt.innerText = "KESİLDİ";
+                        attemptRecovery();
+                    } else if (active && audioCtx.state === 'running') {
+                        statusIndicator.className = 'status-pill active';
+                        statusTxt.innerText = "ONLINE";
+                    }
+                };
+            }
+        }
+
+        async function startSilentMotor() {
             try {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
-                }
+                await initAudio();
                 if (audioCtx.state === 'suspended') await audioCtx.resume();
 
-                // Mutlak Sessizlik Stratejisi: 
-                // Önceki beyaz gürültü üretecini kaldırdık çünkü yüksek seste tıslama yapıyordu.
-                // Sadece donanımın algılayabileceği ama fiziksel ses oluşturmayacak 1Hz dalga kullanıyoruz.
+                if (oscillator) {
+                    try { oscillator.stop(); oscillator.disconnect(); } catch(e){}
+                }
 
                 oscillator = audioCtx.createOscillator();
                 oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(1, audioCtx.currentTime); // 1Hz (İnfrasonik ötesi)
+                oscillator.frequency.setValueAtTime(1, audioCtx.currentTime); 
 
                 const gain = audioCtx.createGain();
-                // 0.00001 seviyesi donanımın "ses var" demesi için yeterli, kulağın duyması için imkansızdır.
                 gain.gain.setValueAtTime(0.00001, audioCtx.currentTime);
 
                 const dest = audioCtx.createMediaStreamDestination();
                 oscillator.connect(gain);
                 gain.connect(dest);
-                // Bazı iOS sürümleri fiziksel çıkışa bağlanmadan stream'i durdurabiliyor
                 gain.connect(audioCtx.destination); 
 
                 oscillator.start();
-
                 audioEl.srcObject = dest.stream;
                 await audioEl.play();
 
-                log("Sessiz motor (1Hz @ 0.00001) aktif.", "success");
                 updateMediaSession();
+                return true;
             } catch (e) {
-                log("Ses hatası: " + e.message);
+                log("Motor Hatası: " + e.message, "warning");
+                return false;
             }
         }
 
         function updateMediaSession() {
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata({
-                    title: ' ', artist: 'Hotspot Aktif', album: 'Ultra Silent'
+                    title: 'HS Ultra - Koruma Altında', 
+                    artist: 'Kesintisiz Mod',
+                    album: 'Hotspot Keep-Alive'
                 });
+                
+                // Sistemden gelen "Oynat" komutlarını yakala (Instagram vb. bittiğinde tetiklenir)
+                navigator.mediaSession.setActionHandler('play', () => {
+                    log("Sistem 'Oynat' komutu yakalandı", "info");
+                    attemptRecovery();
+                });
+                
                 navigator.mediaSession.playbackState = active ? 'playing' : 'paused';
+            }
+        }
+
+        async function attemptRecovery() {
+            if (!active) return;
+            log("Otomatik kurtarma deneniyor...", "info");
+            
+            // 1. AudioContext'i canlandır
+            if (audioCtx && audioCtx.state === 'suspended') {
+                try { await audioCtx.resume(); } catch(e){}
+            }
+            
+            // 2. Elementi oynat
+            try { await audioEl.play(); } catch(e){}
+            
+            // 3. Motoru tazelemek gerekiyorsa tazele
+            if (audioCtx && audioCtx.state !== 'running') {
+                await startSilentMotor();
             }
         }
 
         async function sendPing() {
             if (!active) return;
+            
+            // Ping sırasında ses motorunun sağlığını da kontrol edelim
+            if (audioCtx && audioCtx.state === 'suspended') {
+                attemptRecovery();
+            }
+
             try {
                 await fetch(`https://www.google.com/generate_204?t=${Math.floor(Date.now()/1000)}`, { 
                     method: 'HEAD',
@@ -264,11 +314,10 @@
                 
                 pings++;
                 totalDataBytes += 320; 
-                
                 pingDisplay.innerText = pings;
                 dataDisplay.innerText = (totalDataBytes / 1024).toFixed(2);
                 
-                log(`Sinyal #${pings} iletildi.`, "info");
+                log(`Sinyal iletildi (#${pings})`, "info");
                 pingTimeout = setTimeout(sendPing, currentInterval);
             } catch (e) {
                 pingTimeout = setTimeout(sendPing, 5000);
@@ -278,12 +327,18 @@
         function handleToggle() {
             if (!active) {
                 active = true;
-                startEngine();
-                mainBtn.className = 'big-btn active';
-                statusIndicator.className = 'status-pill active';
-                statusTxt.innerText = "ONLINE";
-                btnTxt.innerText = "DURDUR";
-                sendPing();
+                startSilentMotor().then(success => {
+                    if(success) {
+                        mainBtn.className = 'big-btn active';
+                        statusIndicator.className = 'status-pill active';
+                        statusTxt.innerText = "ONLINE";
+                        btnTxt.innerText = "DURDUR";
+                        sendPing();
+                    } else {
+                        active = false;
+                        log("Başlatılamadı, lütfen tekrar deneyin.", "warning");
+                    }
+                });
             } else {
                 active = false;
                 if (pingTimeout) clearTimeout(pingTimeout);
@@ -291,6 +346,7 @@
                     try { oscillator.stop(); oscillator.disconnect(); } catch(e){}
                 }
                 audioEl.pause();
+                if(audioCtx) audioCtx.suspend();
                 updateMediaSession();
                 mainBtn.className = 'big-btn idle';
                 statusIndicator.className = 'status-pill idle';
@@ -300,6 +356,7 @@
             }
         }
 
+        // Stealth Modu Mantığı
         stealthBtn.addEventListener('click', () => {
             isStealth = !isStealth;
             document.body.classList.toggle('stealth-active', isStealth);
@@ -317,20 +374,22 @@
             handleToggle();
         });
 
+        // iOS için en kritik olay: Visibility Change
         document.addEventListener('visibilitychange', () => {
             if (!active) return;
-            if (document.visibilityState === 'hidden') {
-                currentInterval = BACKGROUND_INTERVAL;
-                statusIndicator.className = 'status-pill power-save';
-            } else {
+            if (document.visibilityState === 'visible') {
+                log("Uygulama ön plana çıktı, ses tazeleniyor.");
                 currentInterval = FOREGROUND_INTERVAL;
-                statusIndicator.className = 'status-pill active';
+                attemptRecovery();
                 if (pingTimeout) { clearTimeout(pingTimeout); sendPing(); }
-                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            } else {
+                currentInterval = BACKGROUND_INTERVAL;
+                log("Arka plan moduna geçildi.", "info");
             }
             updateMediaSession();
         });
 
+        // Manifest ve PWA ayarları
         const manifest = { "name": "HS Ultra", "short_name": "HS Ultra", "start_url": ".", "display": "standalone", "background_color": "#000000", "theme_color": "#000000" };
         const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
         const link = document.createElement('link');
