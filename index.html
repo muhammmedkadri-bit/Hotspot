@@ -146,18 +146,17 @@
             </div>
         </div>
 
-        <div style="font-size: 10px; color: #444; text-align: center; line-height: 1.4;">
-            Denetim Merkezi'nde görünmesi için ses seviyesini açın.<br>
-            Düşük Güç Modu kapalı olmalıdır.
+        <div style="font-size: 11px; color: #666; text-align: center; line-height: 1.6; max-width: 80%;">
+            <strong>iPhone İpucu:</strong> Denetim Merkezi'nde görünmezse ses seviyesini 1 kademe artırın ve Düşük Güç Modunu kapatın.
         </div>
     </div>
 
     <div id="console" class="console"></div>
     <div class="safe-bottom"></div>
 
-    <!-- Daha uzun bir sessiz MP3 (1 saniye civarı) -->
+    <!-- 5 Saniyelik Daha Güçlü Sessiz MP3 -->
     <audio id="audioElement" loop playsinline preload="auto">
-        <source src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==" type="audio/wav">
+        <source src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGFtZTMuMTAwAKAAAAAAAAAAAAAA//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA=" type="audio/mpeg">
     </audio>
 
     <script>
@@ -193,21 +192,21 @@
                     await audioCtx.resume();
                 }
 
-                // Oscillator: 20Hz (İnsan kulağı için neredeyse duyulmaz ama aktif bir sinyaldir)
+                // Inaudible 20Hz sine wave to keep audio engine alive
                 oscNode = audioCtx.createOscillator();
                 oscNode.type = 'sine';
                 oscNode.frequency.setValueAtTime(20, audioCtx.currentTime); 
                 
                 const gain = audioCtx.createGain();
-                gain.gain.setValueAtTime(0.001, audioCtx.currentTime); // Çok düşük ses
+                gain.gain.setValueAtTime(0.001, audioCtx.currentTime); 
                 
                 oscNode.connect(gain);
                 gain.connect(audioCtx.destination);
                 oscNode.start();
                 
-                log("Web Audio (Oscillator) Aktif", "success");
+                log("Audio Engine tescil edildi", "success");
             } catch (e) {
-                log("Web Audio Hatası: " + e.message, "error");
+                log("Audio Engine Hatası", "error");
             }
         }
 
@@ -215,60 +214,64 @@
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: 'Hotspot Pro Ultra',
-                    artist: 'Keep-Alive Kalkanı',
-                    album: pings > 0 ? `Aktif Sinyal: ${pings}` : 'Sistem Beklemede',
+                    artist: 'Sistem Koruma Altında',
+                    album: `Trafik: ${pings} Ping`,
                     artwork: [
-                        { src: 'https://www.google.com/favicon.ico', sizes: '96x96', type: 'image/png' }
+                        { src: 'https://www.google.com/favicon.ico', sizes: '512x512', type: 'image/png' }
                     ]
                 });
+                
                 navigator.mediaSession.playbackState = active ? 'playing' : 'paused';
 
-                // iOS Denetim Merkezi için aksiyonları bağla
-                navigator.mediaSession.setActionHandler('play', () => {
-                    if(!active) handleStart();
-                });
-                navigator.mediaSession.setActionHandler('pause', () => {
-                    if(active) stop();
-                });
+                // iOS Denetim Merkezi Kontrolleri
+                navigator.mediaSession.setActionHandler('play', () => handleStart());
+                navigator.mediaSession.setActionHandler('pause', () => stop());
             }
         }
 
         async function pulse() {
             if (!active) return;
             try {
-                // iPhone'un WiFi/Hotspot kanalını uyanık tutmak için gerçek trafik
-                await fetch(`https://www.google.com/generate_204?nocache=${Date.now()}`, { mode: 'no-cors', cache: 'no-store' });
+                // iPhone WiFi kanalını meşgul tutmak için agresif fetch
+                await fetch(`https://www.google.com/generate_204?id=${Date.now()}`, { 
+                    mode: 'no-cors', 
+                    cache: 'no-store',
+                    priority: 'high'
+                });
                 pings++;
                 pingDisplay.innerText = pings;
                 timeDisplay.innerText = new Date().toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-                updateMediaSession();
-                log(`Sinyal #${pings} iletildi`, "info");
+                
+                // Her pingde Denetim Merkezini "canlı" tutmak için re-sync
+                if (pings % 5 === 0) updateMediaSession();
+                
+                log(`Veri akışı sağlandı (#${pings})`, "info");
             } catch (e) {
-                log("Sinyal iletim hatası", "error");
+                log("Sinyal kesintisi!", "error");
             }
         }
 
         async function handleStart() {
-            log("Sistem başlatılıyor...");
+            // KRİTİK: iOS'ta play() komutu EN BAŞTA ve ASENKRON OLMAYAN bir şekilde çağrılmalı
+            const startAttempt = audioEl.play();
             
-            // iOS'un "Now Playing"e eklemesi için tetikleyici
-            const playPromise = audioEl.play();
+            log("Başlatılıyor...");
+            active = true;
 
             try {
-                active = true;
-                
-                if (playPromise !== undefined) {
-                    playPromise.then(() => {
-                        log("Media Player AKTİF", "success");
+                if (startAttempt !== undefined) {
+                    startAttempt.then(() => {
+                        log("Ses Kanalı: AÇIK", "success");
                     }).catch(err => {
-                        log("Media Player Başlatılamadı", "error");
+                        log("Ses Kanalı Hatası", "error");
                     });
                 }
 
                 await initWebAudio();
                 updateMediaSession();
 
-                // 4 saniyede bir ping (iOS Hotspot genelde 15-30 sn boşta kalınca kapanır)
+                // 4 saniyelik periyot iOS Hotspot için idealdir
+                if (interval) clearInterval(interval);
                 interval = setInterval(pulse, 4000);
                 
                 mainBtn.className = 'big-btn active';
@@ -276,10 +279,10 @@
                 statusTxt.innerText = "ONLINE";
                 btnTxt.innerText = "DURDUR";
                 
-                log("Koruma Kalkanı DEVREDE", "success");
+                log("Sistem Koruma Modunda!", "success");
                 pulse();
             } catch (e) {
-                log("Kritik hata: " + e.message, "error");
+                log("Kritik Hata: " + e.message, "error");
                 stop();
             }
         }
@@ -299,7 +302,7 @@
             statusTxt.innerText = "PASİF";
             btnTxt.innerText = "BAŞLAT";
             
-            log("Sistem DURDURULDU.", "error");
+            log("Sistem durduruldu.");
         }
 
         mainBtn.addEventListener('click', (e) => {
@@ -308,15 +311,14 @@
             else stop();
         });
 
-        // PWA Manifest
+        // iPhone PWA manifestini her zaman taze tut
         const manifest = {
             "name": "Hotspot Pro Ultra",
             "short_name": "HS Ultra",
             "start_url": ".",
             "display": "standalone",
             "background_color": "#000000",
-            "theme_color": "#000000",
-            "icons": [{ "src": "https://www.google.com/favicon.ico", "sizes": "512x512", "type": "image/png" }]
+            "theme_color": "#000000"
         };
         const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
         const link = document.createElement('link');
@@ -324,7 +326,7 @@
         link.href = URL.createObjectURL(blob);
         document.head.appendChild(link);
         
-        // Background Resume
+        // Uygulama arka plana atılsa da Web Audio'yu canlı tut
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible' && active && audioCtx) {
                 audioCtx.resume();
