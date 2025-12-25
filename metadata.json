@@ -1,7 +1,5 @@
 {
-  "requestFramePermissions": [
-    "geolocation"
-  ],
+  "requestFramePermissions": [],
   "name": "",
   "description": ""
 }

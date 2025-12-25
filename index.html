@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>HS Nav Anchor</title>
+    <title>Hotspot Keep-Alive</title>
     
-    <!-- iOS PWA Meta Etiketleri -->
+    <!-- iOS PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Hotspot">
@@ -14,18 +14,15 @@
     <style>
         :root {
             --bg: #000000;
-            --ios-blue: #0A84FF;
-            --ios-green: #30D158;
-            --ios-red: #FF453A;
+            --accent: #0A84FF;
+            --danger: #FF453A;
             --surface: #1C1C1E;
-            --text-secondary: #8E8E93;
+            --text: #ffffff;
         }
-
-        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
 
         body {
             background-color: var(--bg);
-            color: white;
+            color: var(--text);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             height: 100dvh;
@@ -43,149 +40,95 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: space-between;
-            padding: 20px 24px;
+            justify-content: space-around;
+            padding: 20px;
         }
 
-        .header { text-align: center; width: 100%; }
-        
-        .status-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
+        .status-box {
+            text-align: center;
             background: var(--surface);
-            padding: 10px 20px;
-            border-radius: 40px;
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
+            padding: 15px 30px;
+            border-radius: 50px;
             border: 1px solid #333;
+            font-weight: 600;
+            font-size: 14px;
             transition: all 0.3s ease;
         }
 
-        .status-pill.active {
-            border-color: var(--ios-blue);
-            color: var(--ios-blue);
-            box-shadow: 0 0 15px rgba(10, 132, 255, 0.2);
+        .status-box.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            box-shadow: 0 0 20px rgba(10, 132, 255, 0.2);
         }
 
-        .pulse-dot {
-            width: 8px;
-            height: 8px;
+        .main-btn {
+            width: 180px;
+            height: 180px;
             border-radius: 50%;
-            background: #444;
-        }
-
-        .active .pulse-dot {
-            background: var(--ios-blue);
-            animation: pulse-glow 1.5s infinite;
-        }
-
-        @keyframes pulse-glow {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(1.2); }
-            100% { opacity: 1; transform: scale(1); }
-        }
-
-        .main-display {
-            position: relative;
-            width: 280px;
-            height: 280px;
+            border: none;
+            background: var(--accent);
+            color: white;
+            font-size: 24px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 0 40px rgba(10, 132, 255, 0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex;
             align-items: center;
             justify-content: center;
+            text-align: center;
         }
 
-        .radar-ring {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border: 1px solid var(--ios-blue);
-            border-radius: 50%;
-            opacity: 0;
-        }
-
-        .active .radar-ring { animation: radar-wave 4s infinite linear; }
-        .active .radar-ring:nth-child(2) { animation-delay: 1.33s; }
-        .active .radar-ring:nth-child(3) { animation-delay: 2.66s; }
-
-        @keyframes radar-wave {
-            0% { transform: scale(0.3); opacity: 0.8; }
-            100% { transform: scale(1.4); opacity: 0; }
-        }
-
-        .control-btn {
-            width: 160px;
-            height: 160px;
-            border-radius: 50%;
-            border: none;
-            background: var(--ios-blue);
-            color: white;
-            font-size: 22px;
-            font-weight: 800;
-            z-index: 10;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            cursor: pointer;
-        }
-
-        .control-btn.active {
-            background: var(--ios-red);
+        .main-btn.active {
+            background: var(--danger);
+            box-shadow: 0 0 40px rgba(255, 69, 58, 0.3);
             transform: scale(0.95);
         }
 
-        .info-grid {
+        .stats {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 15px;
             width: 100%;
-            max-width: 360px;
+            max-width: 350px;
         }
 
-        .info-card {
+        .stat-item {
             background: var(--surface);
             padding: 20px;
-            border-radius: 24px;
+            border-radius: 20px;
             text-align: center;
-            border: 1px solid #2c2c2e;
         }
 
-        .info-val {
+        .stat-val {
             display: block;
-            font-size: 22px;
+            font-size: 28px;
             font-weight: 700;
             margin-bottom: 5px;
-            font-variant-numeric: tabular-nums;
-            color: var(--ios-green);
         }
 
-        .info-label {
+        .stat-lbl {
             font-size: 11px;
-            color: var(--text-secondary);
+            color: #8E8E93;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
-        .console-log {
+        .logs {
             width: 100%;
-            height: 120px;
+            height: 100px;
             background: #000;
-            border-top: 1px solid #1c1c1e;
-            padding: 12px;
-            font-family: "SF Mono", "Menlo", monospace;
-            font-size: 11px;
-            color: #555;
+            border-top: 1px solid #222;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 10px;
+            color: #444;
             overflow-y: auto;
             display: flex;
             flex-direction: column-reverse;
         }
 
-        .log-line { margin-bottom: 4px; border-left: 2px solid transparent; padding-left: 8px; }
-        .log-line.active { color: var(--ios-blue); border-color: var(--ios-blue); }
-        .log-line.error { color: var(--ios-red); border-color: var(--ios-red); }
-        .log-line.gps { color: var(--ios-green); border-color: var(--ios-green); }
-
-        #pwa-shield {
+        #pwa-setup {
             position: fixed;
             inset: 0;
             background: #000;
@@ -198,223 +141,178 @@
             padding: 40px;
         }
 
-        .footer-note {
-            font-size: 12px;
-            color: #444;
-            text-align: center;
-            line-height: 1.4;
-            padding: 0 20px;
-        }
+        .log-entry { margin-bottom: 2px; }
+        .log-entry.blue { color: var(--accent); }
     </style>
 </head>
 <body>
 
-    <div id="pwa-shield">
-        <h2 style="color: var(--ios-blue); margin-bottom: 10px;">NAVİGASYON MODU</h2>
-        <p style="font-size: 15px; line-height: 1.6; color: #ccc;">iOS arka plan kısıtlamalarını aşmak ve <b>Mavi Konum Çubuğunu</b> aktif etmek için bu uygulamayı Ana Ekrana eklemelisiniz.</p>
-        <div style="font-size: 40px; margin: 30px 0;">⬇️</div>
-        <p style="font-size: 13px; color: #666;">Paylaş butonuna dokunun ve <br><b>"Ana Ekrana Ekle"</b> seçeneğini bulun.</p>
+    <div id="pwa-setup">
+        <h2 style="color: var(--accent)">KURULUM GEREKLİ</h2>
+        <p>Hotspot korumasının arka planda çalışabilmesi için uygulamayı ana ekrana eklemelisiniz.</p>
+        <div style="font-size: 40px; margin: 20px 0;">⬇️</div>
+        <p style="font-size: 13px; color: #666;">Paylaş butonuna dokunun ve "Ana Ekrana Ekle"yi seçin.</p>
     </div>
 
     <div class="safe-top"></div>
 
     <div class="container">
-        <div class="header">
-            <div id="statusIndicator" class="status-pill">
-                <div class="pulse-dot"></div>
-                SİSTEM DURUMU: <span id="statusLabel">HAZIR</span>
+        <div id="statusIndicator" class="status-box">
+            SİSTEM: <span id="statusLabel">DURDURULDU</span>
+        </div>
+
+        <button id="ctrlBtn" class="main-btn">BAŞLAT</button>
+
+        <div class="stats">
+            <div class="stat-item">
+                <span id="pingCount" class="stat-val">0</span>
+                <span class="stat-lbl">PİNG</span>
+            </div>
+            <div class="stat-item">
+                <span id="uptime" class="stat-val">00:00</span>
+                <span class="stat-lbl">SÜRE</span>
             </div>
         </div>
 
-        <div id="orbContainer" class="main-display">
-            <div class="radar-ring"></div>
-            <div class="radar-ring"></div>
-            <div class="radar-ring"></div>
-            <button id="mainBtn" class="control-btn">BAŞLAT</button>
-        </div>
-
-        <div class="info-grid">
-            <div class="info-card">
-                <span id="coordDisplay" class="info-val">KONUM BEKLENİYOR...</span>
-                <span class="info-label">CANLI GPS KOORDİNATLARI</span>
-                <div style="font-size: 10px; color: #666; margin-top: 5px;">AĞ PAKETİ: <span id="pingDisplay">0</span></div>
-            </div>
-        </div>
-
-        <div class="footer-note">
-            Başlattıktan sonra ana ekrana dönün. Üstte mavi simge/saat göründüğünde hotspot bağlantınız korunacaktır.
-        </div>
+        <p style="font-size: 11px; color: #444; text-align: center; padding: 0 20px;">
+            Başlattıktan sonra cihazınızı kilitleyebilirsiniz. 1Hz sessiz sinyal sistemin uyumasını engelleyecektir.
+        </p>
     </div>
 
-    <div id="consoleLog" class="console-log"></div>
+    <div id="logArea" class="logs"></div>
     <div class="safe-bottom"></div>
 
     <script>
-        let isActive = false;
-        let pingCount = 0;
-        let watchId = null;
+        let running = false;
+        let pings = 0;
+        let startTime = null;
         let audioCtx = null;
-        let loopTimer = null;
+        let oscillator = null;
+        let timerId = null;
+        let uptimeId = null;
 
-        const mainBtn = document.getElementById('mainBtn');
-        const orb = document.getElementById('orbContainer');
+        const ctrlBtn = document.getElementById('ctrlBtn');
         const statusLabel = document.getElementById('statusLabel');
         const statusIndicator = document.getElementById('statusIndicator');
-        const coordDisplay = document.getElementById('coordDisplay');
-        const pingDisplay = document.getElementById('pingDisplay');
-        const consoleLog = document.getElementById('consoleLog');
+        const pingCountEl = document.getElementById('pingCount');
+        const uptimeEl = document.getElementById('uptime');
+        const logArea = document.getElementById('logArea');
 
-        // PWA Standalone Check
+        // PWA Check
         if (!window.navigator.standalone && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
-            document.getElementById('pwa-shield').style.display = 'flex';
+            document.getElementById('pwa-setup').style.display = 'flex';
         }
 
-        function pushLog(msg, type = '') {
-            const el = document.createElement('div');
-            el.className = `log-line ${type}`;
-            el.innerText = `[${new Date().toLocaleTimeString('tr-TR')}] ${msg}`;
-            consoleLog.prepend(el);
-            if (consoleLog.children.length > 50) consoleLog.lastChild.remove();
+        function addLog(msg, isBlue = false) {
+            const div = document.createElement('div');
+            div.className = `log-entry ${isBlue ? 'blue' : ''}`;
+            div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logArea.prepend(div);
+            if (logArea.children.length > 30) logArea.lastChild.remove();
         }
 
-        // Web Audio Engine: Constant high-priority process
-        function startAudioEngine() {
+        function updateUptime() {
+            if (!startTime) return;
+            const diff = Math.floor((Date.now() - startTime) / 1000);
+            const m = Math.floor(diff / 60).toString().padStart(2, '0');
+            const s = (diff % 60).toString().padStart(2, '0');
+            uptimeEl.innerText = `${m}:${s}`;
+        }
+
+        async function ping() {
+            if (!running) return;
             try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
-                const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 1, audioCtx.sampleRate);
-                const source = audioCtx.createBufferSource();
-                source.buffer = buffer;
-                source.loop = true;
-                
-                const gain = audioCtx.createGain();
-                gain.gain.value = 0.001; 
-                
-                source.connect(gain);
-                gain.connect(audioCtx.destination);
-                source.start();
+                // Hotspot uyanık tutma trafiği
+                await fetch('https://www.google.com/generate_204', { mode: 'no-cors', cache: 'no-store' });
+                pings++;
+                pingCountEl.innerText = pings;
+                if (pings % 10 === 0) addLog("Bağlantı aktif tutuluyor.");
+            } catch (e) {
+                addLog("Ping hatası", true);
+            }
+        }
 
+        function startKeepAlive() {
+            try {
+                // 1. Web Audio Sinyali (1Hz subsonic)
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                oscillator = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(1, audioCtx.currentTime); // 1 Hz (Duyulmaz)
+                
+                gain.gain.setValueAtTime(0.001, audioCtx.currentTime); // Çok düşük ses
+                
+                oscillator.connect(gain);
+                gain.connect(audioCtx.destination);
+                oscillator.start();
+
+                // 2. Media Session API (iOS Arka Plan Kilidi)
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.metadata = new MediaMetadata({
-                        title: 'Hotspot Navigation Anchor',
-                        artist: 'Background GPS Engine',
-                        album: 'Live Mode'
+                        title: 'Hotspot Koruyucu',
+                        artist: 'Keep-Alive Aktif',
+                        album: 'Arka Plan Modu'
                     });
+                    // iOS için boş handlerlar
+                    navigator.mediaSession.setActionHandler('play', () => {});
+                    navigator.mediaSession.setActionHandler('pause', () => {});
                 }
-                pushLog("Ses motoru uyanık.", "active");
-            } catch (e) {
-                pushLog("Ses motoru hatası: " + e.message, "error");
-            }
-        }
 
-        // The "Network Heartbeat" to keep radio interface from sleeping
-        async function runNetworkLoop() {
-            if (!isActive) return;
+                // 3. Döngüler
+                running = true;
+                startTime = Date.now();
+                timerId = setInterval(ping, 5000);
+                uptimeId = setInterval(updateUptime, 1000);
 
-            try {
-                await fetch(`https://www.google.com/generate_204?v=${Date.now()}`, { 
-                    mode: 'no-cors', 
-                    cache: 'no-store' 
-                });
-                pingCount++;
-                pingDisplay.innerText = pingCount;
-            } catch (err) {}
-
-            loopTimer = setTimeout(runNetworkLoop, 3500);
-        }
-
-        function handleLocationUpdate(pos) {
-            if (!isActive) return;
-            const lat = pos.coords.latitude.toFixed(6);
-            const lng = pos.coords.longitude.toFixed(6);
-            const accuracy = pos.coords.accuracy.toFixed(1);
-            
-            coordDisplay.innerText = `${lat}, ${lng}`;
-            
-            if (pingCount % 5 === 0) {
-                pushLog(`GPS GÜNCEL: ${lat}, ${lng} (±${accuracy}m)`, "gps");
-            }
-        }
-
-        async function startSystem() {
-            pushLog("Sistem yetkilendiriliyor...");
-            
-            // Explicit prompt and first fix
-            navigator.geolocation.getCurrentPosition(async (pos) => {
-                pushLog("GPS İzni Onaylandı. Takip Başlıyor.", "active");
-                
-                startAudioEngine();
-                
-                isActive = true;
-                handleLocationUpdate(pos);
-
-                // Start watchPosition for persistent "Blue Bar" indicator and REAL-TIME updates
-                // iOS uses this to determine if an app is a "Navigation" app.
-                watchId = navigator.geolocation.watchPosition(
-                    handleLocationUpdate,
-                    (err) => {
-                        let errMsg = "Konum hatası";
-                        if(err.code === 1) errMsg = "İzin reddedildi";
-                        if(err.code === 2) errMsg = "Konum bulunamadı";
-                        if(err.code === 3) errMsg = "Zaman aşımı";
-                        pushLog(errMsg + ": " + err.message, "error");
-                    },
-                    { 
-                        enableHighAccuracy: true, 
-                        maximumAge: 0, 
-                        timeout: 10000 
-                    }
-                );
-
-                runNetworkLoop();
-
-                // UI Transitions
-                mainBtn.innerText = "DURDUR";
-                mainBtn.classList.add('active');
-                orb.classList.add('active');
+                // UI
+                ctrlBtn.innerText = "DURDUR";
+                ctrlBtn.classList.add('active');
                 statusIndicator.classList.add('active');
-                statusLabel.innerText = "NAVİGASYON AKTİF";
-                pushLog("Mavi Çubuk tetiklendi. Arka planda güvenle çalışır.", "active");
+                statusLabel.innerText = "AKTİF";
+                addLog("1Hz Sinyal Başlatıldı.", true);
+                addLog("Arka plan kilidi devrede.");
 
-            }, (err) => {
-                alert("HATA: Konum izni olmadan hotspot koruması çalışamaz. Lütfen ayarlardan izin verin.");
-                pushLog("İzin reddedildi.", "error");
-            }, { enableHighAccuracy: true, timeout: 15000 });
+            } catch (err) {
+                addLog("Başlatma hatası: " + err.message);
+            }
         }
 
-        function stopSystem() {
-            isActive = false;
-            clearTimeout(loopTimer);
-            if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        function stopKeepAlive() {
+            running = false;
+            if (oscillator) oscillator.stop();
             if (audioCtx) audioCtx.close();
-
-            mainBtn.innerText = "BAŞLAT";
-            mainBtn.classList.remove('active');
-            orb.classList.remove('active');
+            if (timerId) clearInterval(timerId);
+            if (uptimeId) clearInterval(uptimeId);
+            
+            startTime = null;
+            ctrlBtn.innerText = "BAŞLAT";
+            ctrlBtn.classList.remove('active');
             statusIndicator.classList.remove('active');
-            statusLabel.innerText = "HAZIR";
-            coordDisplay.innerText = "KONUM BEKLENİYOR...";
-            pushLog("Sistem durduruldu.");
+            statusLabel.innerText = "DURDURULDU";
+            addLog("Sistem kapatıldı.");
         }
 
-        mainBtn.addEventListener('click', () => {
-            if (!isActive) startSystem();
-            else stopSystem();
+        ctrlBtn.addEventListener('click', () => {
+            if (!running) startKeepAlive();
+            else stopKeepAlive();
         });
 
-        const manifestData = {
-            name: "Hotspot Nav Anchor",
+        // Manifest Injection
+        const manifest = {
+            name: "Hotspot Keep-Alive",
             short_name: "Hotspot",
             display: "standalone",
             start_url: ".",
             background_color: "#000000",
             theme_color: "#000000"
         };
-        const blob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
-        const manifestURL = URL.createObjectURL(blob);
-        const manifestLink = document.createElement('link');
-        manifestLink.rel = 'manifest';
-        manifestLink.href = manifestURL;
-        document.head.appendChild(manifestLink);
+        const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = URL.createObjectURL(blob);
+        document.head.appendChild(link);
     </script>
 </body>
 </html>
