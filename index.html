@@ -136,7 +136,7 @@
 
         .info-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 15px;
             width: 100%;
             max-width: 360px;
@@ -152,10 +152,11 @@
 
         .info-val {
             display: block;
-            font-size: 26px;
+            font-size: 22px;
             font-weight: 700;
             margin-bottom: 5px;
             font-variant-numeric: tabular-nums;
+            color: var(--ios-green);
         }
 
         .info-label {
@@ -182,8 +183,8 @@
         .log-line { margin-bottom: 4px; border-left: 2px solid transparent; padding-left: 8px; }
         .log-line.active { color: var(--ios-blue); border-color: var(--ios-blue); }
         .log-line.error { color: var(--ios-red); border-color: var(--ios-red); }
+        .log-line.gps { color: var(--ios-green); border-color: var(--ios-green); }
 
-        /* PWA Setup Shield */
         #pwa-shield {
             position: fixed;
             inset: 0;
@@ -234,12 +235,9 @@
 
         <div class="info-grid">
             <div class="info-card">
-                <span id="coordDisplay" class="info-val">---</span>
-                <span class="info-label">CANLI GPS</span>
-            </div>
-            <div class="info-card">
-                <span id="pingDisplay" class="info-val">0</span>
-                <span class="info-label">AĞ VERİSİ</span>
+                <span id="coordDisplay" class="info-val">KONUM BEKLENİYOR...</span>
+                <span class="info-label">CANLI GPS KOORDİNATLARI</span>
+                <div style="font-size: 10px; color: #666; margin-top: 5px;">AĞ PAKETİ: <span id="pingDisplay">0</span></div>
             </div>
         </div>
 
@@ -276,7 +274,7 @@
             el.className = `log-line ${type}`;
             el.innerText = `[${new Date().toLocaleTimeString('tr-TR')}] ${msg}`;
             consoleLog.prepend(el);
-            if (consoleLog.children.length > 40) consoleLog.lastChild.remove();
+            if (consoleLog.children.length > 50) consoleLog.lastChild.remove();
         }
 
         // Web Audio Engine: Constant high-priority process
@@ -289,7 +287,7 @@
                 source.loop = true;
                 
                 const gain = audioCtx.createGain();
-                gain.gain.value = 0.001; // Silent but registered
+                gain.gain.value = 0.001; 
                 
                 source.connect(gain);
                 gain.connect(audioCtx.destination);
@@ -302,64 +300,72 @@
                         album: 'Live Mode'
                     });
                 }
-                pushLog("Ses motoru donanıma bağlandı.", "active");
+                pushLog("Ses motoru uyanık.", "active");
             } catch (e) {
                 pushLog("Ses motoru hatası: " + e.message, "error");
             }
         }
 
-        // The "Navigation Heartbeat"
-        async function runAnchorLoop() {
+        // The "Network Heartbeat" to keep radio interface from sleeping
+        async function runNetworkLoop() {
             if (!isActive) return;
 
             try {
-                // 1. Force Network Activity (Keeps radio interface alive)
                 await fetch(`https://www.google.com/generate_204?v=${Date.now()}`, { 
                     mode: 'no-cors', 
                     cache: 'no-store' 
                 });
                 pingCount++;
                 pingDisplay.innerText = pingCount;
+            } catch (err) {}
 
-                // 2. High-Accuracy Location Poke (Forces the OS to refresh navigation context)
-                navigator.geolocation.getCurrentPosition(
-                    (p) => {
-                        coordDisplay.innerText = p.coords.latitude.toFixed(4);
-                        coordDisplay.style.color = "var(--ios-green)";
-                        if (pingCount % 10 === 0) pushLog(`Nav-Sync: ${p.coords.latitude.toFixed(4)}, ${p.coords.longitude.toFixed(4)}`, "active");
-                    },
-                    (e) => {
-                        pushLog("GPS Sinyal Zayıf", "error");
-                    },
-                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-                );
+            loopTimer = setTimeout(runNetworkLoop, 3500);
+        }
 
-            } catch (err) {
-                pushLog("Ağ hatası: Veri akışı kesildi.", "error");
+        function handleLocationUpdate(pos) {
+            if (!isActive) return;
+            const lat = pos.coords.latitude.toFixed(6);
+            const lng = pos.coords.longitude.toFixed(6);
+            const accuracy = pos.coords.accuracy.toFixed(1);
+            
+            coordDisplay.innerText = `${lat}, ${lng}`;
+            
+            if (pingCount % 5 === 0) {
+                pushLog(`GPS GÜNCEL: ${lat}, ${lng} (±${accuracy}m)`, "gps");
             }
-
-            // High frequency loop to prevent OS sleep state
-            loopTimer = setTimeout(runAnchorLoop, 3500);
         }
 
         async function startSystem() {
             pushLog("Sistem yetkilendiriliyor...");
             
-            // First, trigger explicit permission prompt
+            // Explicit prompt and first fix
             navigator.geolocation.getCurrentPosition(async (pos) => {
-                pushLog("GPS İzni Onaylandı.", "active");
+                pushLog("GPS İzni Onaylandı. Takip Başlıyor.", "active");
                 
                 startAudioEngine();
+                
+                isActive = true;
+                handleLocationUpdate(pos);
 
-                // Start watchPosition for persistent "Blue Bar" indicator
+                // Start watchPosition for persistent "Blue Bar" indicator and REAL-TIME updates
+                // iOS uses this to determine if an app is a "Navigation" app.
                 watchId = navigator.geolocation.watchPosition(
-                    () => {}, // Background handling is in runAnchorLoop
-                    (err) => pushLog("Takip hatası: " + err.code, "error"),
-                    { enableHighAccuracy: true, maximumAge: 0 }
+                    handleLocationUpdate,
+                    (err) => {
+                        let errMsg = "Konum hatası";
+                        if(err.code === 1) errMsg = "İzin reddedildi";
+                        if(err.code === 2) errMsg = "Konum bulunamadı";
+                        if(err.code === 3) errMsg = "Zaman aşımı";
+                        pushLog(errMsg + ": " + err.message, "error");
+                    },
+                    { 
+                        enableHighAccuracy: true, 
+                        maximumAge: 0, 
+                        timeout: 10000 
+                    }
                 );
 
-                isActive = true;
-                runAnchorLoop();
+                runNetworkLoop();
 
                 // UI Transitions
                 mainBtn.innerText = "DURDUR";
@@ -367,12 +373,12 @@
                 orb.classList.add('active');
                 statusIndicator.classList.add('active');
                 statusLabel.innerText = "NAVİGASYON AKTİF";
-                pushLog("Mavi Çubuk devrede. Ana ekrana dönebilirsiniz.", "active");
+                pushLog("Mavi Çubuk tetiklendi. Arka planda güvenle çalışır.", "active");
 
             }, (err) => {
                 alert("HATA: Konum izni olmadan hotspot koruması çalışamaz. Lütfen ayarlardan izin verin.");
                 pushLog("İzin reddedildi.", "error");
-            }, { enableHighAccuracy: true });
+            }, { enableHighAccuracy: true, timeout: 15000 });
         }
 
         function stopSystem() {
@@ -386,9 +392,8 @@
             orb.classList.remove('active');
             statusIndicator.classList.remove('active');
             statusLabel.innerText = "HAZIR";
-            coordDisplay.innerText = "---";
-            coordDisplay.style.color = "";
-            pushLog("Sistem güvenli şekilde durduruldu.");
+            coordDisplay.innerText = "KONUM BEKLENİYOR...";
+            pushLog("Sistem durduruldu.");
         }
 
         mainBtn.addEventListener('click', () => {
@@ -396,7 +401,6 @@
             else stopSystem();
         });
 
-        // Dynamic Manifest Injection for iOS PWA Recognition
         const manifestData = {
             name: "Hotspot Nav Anchor",
             short_name: "Hotspot",
