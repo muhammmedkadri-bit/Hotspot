@@ -1,8 +1,7 @@
 {
-  "name": "HS Live Tracker",
-  "short_name": "Hotspot",
-  "description": "iOS'ta Hotspot'un kapanmasını önlemek için agresif canlı konum takibi ve ses motoru kullanır.",
   "requestFramePermissions": [
     "geolocation"
-  ]
+  ],
+  "name": "",
+  "description": ""
 }
