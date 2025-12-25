@@ -104,7 +104,7 @@
         .stat-lbl { font-size: 10px; color: #888; text-transform: uppercase; margin-top: 5px; }
 
         .console {
-            height: 120px;
+            height: 140px;
             background: #080808;
             border-top: 1px solid #222;
             padding: 12px;
@@ -117,6 +117,7 @@
 
         .log { border-left: 2px solid #333; padding-left: 8px; margin-bottom: 4px; }
         .log.success { color: var(--green); border-left-color: var(--green); }
+        .log.info { color: var(--blue); border-left-color: var(--blue); }
         .log.error { color: var(--red); border-left-color: var(--red); }
     </style>
 </head>
@@ -144,6 +145,11 @@
                 <span class="stat-lbl">Zaman</span>
             </div>
         </div>
+
+        <div style="font-size: 10px; color: #444; text-align: center;">
+            Cihazın "Düşük Güç Modu"nda olmadığından emin olun.<br>
+            Ses seviyesini 1 kademe artırın.
+        </div>
     </div>
 
     <div id="console" class="console"></div>
@@ -154,23 +160,6 @@
     </audio>
 
     <script>
-        // PWA Manifest Injector
-        const manifest = {
-            "name": "Hotspot Keep-Alive",
-            "short_name": "HS Keep",
-            "start_url": ".",
-            "display": "standalone",
-            "background_color": "#000000",
-            "theme_color": "#000000"
-        };
-        const stringManifest = JSON.stringify(manifest);
-        const blob = new Blob([stringManifest], {type: 'application/json'});
-        const manifestURL = URL.createObjectURL(blob);
-        const link = document.createElement('link');
-        link.rel = 'manifest';
-        link.href = manifestURL;
-        document.head.appendChild(link);
-
         let active = false;
         let pings = 0;
         let interval = null;
@@ -189,40 +178,50 @@
         function log(msg, type = '') {
             const d = document.createElement('div');
             d.className = `log ${type}`;
-            d.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            d.innerText = `[${new Date().toLocaleTimeString('tr-TR', {hour12:false})}] ${msg}`;
             consoleEl.prepend(d);
-            if(consoleEl.children.length > 20) consoleEl.lastChild.remove();
+            if(consoleEl.children.length > 30) consoleEl.lastChild.remove();
         }
 
-        async function initAudioEngine() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') await audioCtx.resume();
+        async function initWebAudio() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+                }
+                if (audioCtx.state === 'suspended') {
+                    await audioCtx.resume();
+                }
 
-            // Sadece sessiz MP3 yetmez, gerçek bir ses sinyali üretmeliyiz
-            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 1, audioCtx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < data.length; i++) {
-                data[i] = Math.random() * 0.005; // Çok düşük beyaz gürültü (duyulmaz ama aktiftir)
-            }
+                // Buffer üretimi
+                const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < data.length; i++) {
+                    data[i] = Math.random() * 0.005; // Çok düşük gürültü
+                }
 
-            noiseSource = audioCtx.createBufferSource();
-            noiseSource.buffer = buffer;
-            noiseSource.loop = true;
-            const gain = audioCtx.createGain();
-            gain.gain.value = 0.01;
-            noiseSource.connect(gain);
-            gain.connect(audioCtx.destination);
-            noiseSource.start();
+                noiseSource = audioCtx.createBufferSource();
+                noiseSource.buffer = buffer;
+                noiseSource.loop = true;
+                
+                const gain = audioCtx.createGain();
+                gain.gain.value = 0.01; 
+                
+                noiseSource.connect(gain);
+                gain.connect(audioCtx.destination);
+                noiseSource.start(0);
+                
+                log("Web Audio (Noise) Başladı", "success");
+            } catch (e) {
+                log("Web Audio Hatası: " + e.message, "error");
+            }
         }
 
         function updateMediaSession() {
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata({
-                    title: 'Hotspot Keep-Alive',
-                    artist: 'Sistem Aktif',
-                    album: `Veri Trafiği: ${pings}`,
+                    title: 'Hotspot Pro Ultra',
+                    artist: 'Keep-Alive Aktif',
+                    album: `Sinyal: ${pings}`
                 });
                 navigator.mediaSession.playbackState = active ? 'playing' : 'paused';
             }
@@ -231,39 +230,56 @@
         async function pulse() {
             if (!active) return;
             try {
-                // Cache-busting fetch
-                await fetch(`https://www.google.com/generate_204?v=${Date.now()}`, { mode: 'no-cors', cache: 'no-store' });
+                await fetch(`https://www.google.com/generate_204?cb=${Date.now()}`, { mode: 'no-cors', cache: 'no-store' });
                 pings++;
                 pingDisplay.innerText = pings;
-                timeDisplay.innerText = new Date().toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
+                timeDisplay.innerText = new Date().toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
                 updateMediaSession();
-                log("Sinyal gönderildi", "success");
+                log(`Sinyal ${pings} iletildi`, "info");
             } catch (e) {
-                log("Ağ hatası", "error");
+                log("Bağlantı zayıf...", "error");
             }
         }
 
-        async function start() {
+        async function handleStart() {
+            log("Sistem tetiklendi...");
+            
+            // KRİTİK: Audio element play komutu etkileşimin en başında olmalı
+            const audioPromise = audioEl.play();
+
             try {
-                // Önce ses dosyasını başlat ve bekle (RACE CONDITION FIX)
-                log("Ses motoru başlatılıyor...");
-                await audioEl.play();
-                
-                await initAudioEngine();
                 active = true;
                 
+                // Audio Element durumunu kontrol et
+                if (audioPromise !== undefined) {
+                    audioPromise.then(() => {
+                        log("Media Player: ÇALINIYOR", "success");
+                    }).catch(err => {
+                        log("Media Player Hatası: " + err.message, "error");
+                        // Önemli değil, Web Audio ile devam edeceğiz
+                    });
+                }
+
+                // Web Audio'yu başlat
+                await initWebAudio();
+                
+                // Media Session
                 updateMediaSession();
+
+                // Döngü
                 interval = setInterval(pulse, 4000);
                 
+                // UI Güncelle
                 mainBtn.className = 'big-btn active';
                 statusIndicator.className = 'status-pill active';
-                statusTxt.innerText = "AKTİF";
+                statusTxt.innerText = "ONLINE";
                 btnTxt.innerText = "DURDUR";
                 
-                log("Koruma başlatıldı", "success");
+                log("Koruma Kalkanı AKTİF", "success");
                 pulse();
             } catch (e) {
-                log("Hata: " + e.message, "error");
+                log("Başlatma başarısız: " + e.message, "error");
+                stop();
             }
         }
 
@@ -273,6 +289,7 @@
             audioEl.pause();
             if (noiseSource) {
                 try { noiseSource.stop(); } catch(e) {}
+                noiseSource = null;
             }
             updateMediaSession();
             
@@ -281,20 +298,35 @@
             statusTxt.innerText = "PASİF";
             btnTxt.innerText = "BAŞLAT";
             
-            log("Sistem durduruldu.");
+            log("Sistem DURDURULDU.", "error");
         }
 
-        mainBtn.addEventListener('click', () => {
-            if (!active) start();
+        mainBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!active) handleStart();
             else stop();
         });
 
-        // iOS ekran kilitlendiğinde ses motorunu canlı tut
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible' && active && audioCtx) {
                 audioCtx.resume();
             }
         });
+
+        // PWA Manifest Inject
+        const manifest = {
+            "name": "Hotspot Pro Ultra",
+            "short_name": "HS Ultra",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#000000",
+            "theme_color": "#000000"
+        };
+        const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = URL.createObjectURL(blob);
+        document.head.appendChild(link);
     </script>
 </body>
 </html>
