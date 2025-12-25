@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>HS Ultra Pro</title>
+    <title>HS Ultra Pro - Silent</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -29,7 +29,6 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            transition: opacity 0.5s ease;
         }
 
         .stealth-active { cursor: none; }
@@ -50,11 +49,12 @@
 
         .status-pill {
             background: var(--surface);
-            padding: 12px 24px;
+            padding: 10px 20px;
             border-radius: 30px;
             display: flex;
             align-items: center;
             gap: 10px;
+            font-size: 14px;
             font-weight: 700;
             border: 1px solid #333;
         }
@@ -63,79 +63,76 @@
         .status-pill.idle { border-color: var(--red); color: var(--red); }
         .status-pill.power-save { border-color: var(--orange); color: var(--orange); }
 
-        .led { width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+        .led { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
         .active .led { animation: blink 1s infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
 
         .big-btn {
-            width: 200px;
-            height: 200px;
+            width: 180px;
+            height: 180px;
             border-radius: 50%;
-            border: 6px solid var(--surface);
+            border: 4px solid var(--surface);
             background: var(--bg);
             color: #fff;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 12px;
-            font-size: 20px;
+            gap: 10px;
+            font-size: 18px;
             font-weight: 900;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             outline: none;
             -webkit-tap-highlight-color: transparent;
         }
 
-        .big-btn.active { border-color: var(--green); box-shadow: 0 0 40px rgba(48, 209, 88, 0.1); }
+        .big-btn.active { border-color: var(--green); box-shadow: 0 0 30px rgba(48, 209, 88, 0.1); }
         .big-btn.idle { border-color: var(--red); }
 
         .stats {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            gap: 12px;
             width: 100%;
             max-width: 320px;
         }
 
         .stat-item {
             background: var(--surface);
-            padding: 12px;
-            border-radius: 18px;
+            padding: 15px 10px;
+            border-radius: 20px;
             text-align: center;
             border: 1px solid #222;
         }
 
-        .stat-val { display: block; font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
-        .stat-lbl { font-size: 9px; color: #888; text-transform: uppercase; margin-top: 4px; }
+        .stat-val { display: block; font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .stat-lbl { font-size: 10px; color: #666; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; }
 
         .stealth-btn {
             background: transparent;
-            color: #444;
-            border: 1px solid #222;
+            color: #333;
+            border: 1px solid #1a1a1a;
             padding: 8px 16px;
-            border-radius: 10px;
+            border-radius: 12px;
             font-size: 11px;
-            margin-top: 10px;
+            margin-top: 5px;
         }
 
         .console {
-            height: 120px;
-            background: #050505;
-            border-top: 1px solid #1a1a1a;
-            padding: 10px;
+            height: 100px;
+            background: #000;
+            border-top: 1px solid #111;
+            padding: 8px;
             font-family: 'SF Mono', monospace;
-            font-size: 10px;
+            font-size: 9px;
             overflow-y: auto;
             display: flex;
             flex-direction: column-reverse;
-            transition: opacity 0.3s ease;
         }
 
-        .log { margin-bottom: 4px; color: #444; }
+        .log { margin-bottom: 3px; color: #333; }
         .log.success { color: var(--green); }
         .log.info { color: var(--blue); }
-        .log.error { color: var(--red); }
-        .log.warning { color: var(--orange); }
     </style>
 </head>
 <body>
@@ -145,7 +142,7 @@
     <div class="container" id="mainContainer">
         <div id="statusIndicator" class="status-pill idle">
             <div class="led"></div>
-            SİSTEM: <span id="statusTxt">BEKLEMEDE</span>
+            KORUMA: <span id="statusTxt">PASİF</span>
         </div>
 
         <button id="mainBtn" class="big-btn idle">
@@ -155,19 +152,22 @@
         <div class="stats">
             <div class="stat-item">
                 <span id="pingCounter" class="stat-val">0</span>
-                <span class="stat-lbl">Sinyal Sayısı</span>
+                <span class="stat-lbl">Sinyal</span>
             </div>
             <div class="stat-item">
-                <span id="modeDisplay" class="stat-val">--</span>
-                <span class="stat-lbl">Frekans Modu</span>
+                <span id="dataUsage" class="stat-val">0.0</span>
+                <span class="stat-lbl">Veri (KB)</span>
             </div>
         </div>
 
         <button id="stealthBtn" class="stealth-btn">GİZLİLİK MODU (OLED)</button>
 
-        <p style="font-size: 10px; color: #333; text-align: center; margin: 0 20px; line-height: 1.4;">
-            <b>İnfrasonik Koruma:</b> 7Hz frekansında çalışır. İnsan kulağı ve çoğu hoparlör için tamamen sessizdir.
-        </p>
+        <div style="text-align: center; padding: 0 30px;">
+            <p style="font-size: 10px; color: #444; margin: 0; line-height: 1.5;">
+                <b>Mutlak Sessizlik:</b> 1Hz sinyal + ultra düşük kazanç.<br>
+                Ses en sondayken dahi duyulması donanımsal olarak imkansızdır.
+            </p>
+        </div>
     </div>
 
     <div id="console" class="console"></div>
@@ -178,14 +178,14 @@
     <script>
         let active = false;
         let pings = 0;
+        let totalDataBytes = 0;
         let pingTimeout = null;
         let audioCtx = null;
-        let noiseSource = null;
+        let oscillator = null;
         let isStealth = false;
         
-        // Optimizasyon ayarları
-        const FOREGROUND_INTERVAL = 5000;
-        const BACKGROUND_INTERVAL = 15000;
+        const FOREGROUND_INTERVAL = 7000;
+        const BACKGROUND_INTERVAL = 30000; 
         let currentInterval = FOREGROUND_INTERVAL;
 
         const mainBtn = document.getElementById('mainBtn');
@@ -194,7 +194,7 @@
         const statusTxt = document.getElementById('statusTxt');
         const btnTxt = document.getElementById('btnTxt');
         const pingDisplay = document.getElementById('pingCounter');
-        const modeDisplay = document.getElementById('modeDisplay');
+        const dataDisplay = document.getElementById('dataUsage');
         const consoleEl = document.getElementById('console');
         const audioEl = document.getElementById('audioElement');
 
@@ -203,7 +203,7 @@
             d.className = `log ${type}`;
             d.innerText = `[${new Date().toLocaleTimeString('tr-TR', {hour12:false})}] ${msg}`;
             consoleEl.prepend(d);
-            if(consoleEl.children.length > 20) consoleEl.lastChild.remove();
+            if(consoleEl.children.length > 15) consoleEl.lastChild.remove();
         }
 
         async function startEngine() {
@@ -213,60 +213,40 @@
                 }
                 if (audioCtx.state === 'suspended') await audioCtx.resume();
 
-                // 7Hz Ultra Düşük Frekans Motoru
-                const bufferSize = audioCtx.sampleRate * 2; 
-                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                const data = buffer.getChannelData(0);
-                
-                // Çok hafif kahverengi gürültü (enerji koruması için)
-                let lastOut = 0;
-                for (let i = 0; i < bufferSize; i++) {
-                    const white = Math.random() * 2 - 1;
-                    data[i] = (lastOut + (0.01 * white)) / 1.01;
-                    lastOut = data[i];
-                    data[i] *= 0.01; 
-                }
+                // Mutlak Sessizlik Stratejisi: 
+                // Önceki beyaz gürültü üretecini kaldırdık çünkü yüksek seste tıslama yapıyordu.
+                // Sadece donanımın algılayabileceği ama fiziksel ses oluşturmayacak 1Hz dalga kullanıyoruz.
 
-                noiseSource = audioCtx.createBufferSource();
-                noiseSource.buffer = buffer;
-                noiseSource.loop = true;
-
-                // 7Hz İnfrasonik Dalga
-                const osc = audioCtx.createOscillator();
-                osc.frequency.setValueAtTime(7, audioCtx.currentTime);
+                oscillator = audioCtx.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(1, audioCtx.currentTime); // 1Hz (İnfrasonik ötesi)
 
                 const gain = audioCtx.createGain();
-                gain.gain.setValueAtTime(0.001, audioCtx.currentTime); // Duyulamaz seviye
+                // 0.00001 seviyesi donanımın "ses var" demesi için yeterli, kulağın duyması için imkansızdır.
+                gain.gain.setValueAtTime(0.00001, audioCtx.currentTime);
 
                 const dest = audioCtx.createMediaStreamDestination();
-                noiseSource.connect(gain);
-                osc.connect(gain);
+                oscillator.connect(gain);
                 gain.connect(dest);
-                gain.connect(audioCtx.destination);
+                // Bazı iOS sürümleri fiziksel çıkışa bağlanmadan stream'i durdurabiliyor
+                gain.connect(audioCtx.destination); 
 
-                noiseSource.start();
-                osc.start();
+                oscillator.start();
 
                 audioEl.srcObject = dest.stream;
                 await audioEl.play();
 
-                log("İnfrasonik Motor (7Hz): AKTİF", "success");
+                log("Sessiz motor (1Hz @ 0.00001) aktif.", "success");
                 updateMediaSession();
             } catch (e) {
-                log("Hata: " + e.message, "error");
+                log("Ses hatası: " + e.message);
             }
         }
 
         function updateMediaSession() {
             if ('mediaSession' in navigator) {
-                const modeText = currentInterval === BACKGROUND_INTERVAL ? "ECO (7Hz)" : "PRO (7Hz)";
                 navigator.mediaSession.metadata = new MediaMetadata({
-                    title: ' ', 
-                    artist: 'Hotspot Koruma Modu',
-                    album: active ? modeText : ' ',
-                    artwork: [
-                        { src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', sizes: '1x1', type: 'image/png' }
-                    ]
+                    title: ' ', artist: 'Hotspot Aktif', album: 'Ultra Silent'
                 });
                 navigator.mediaSession.playbackState = active ? 'playing' : 'paused';
             }
@@ -275,17 +255,23 @@
         async function sendPing() {
             if (!active) return;
             try {
-                await fetch(`https://www.google.com/generate_204?id=${Date.now()}`, { 
+                await fetch(`https://www.google.com/generate_204?t=${Math.floor(Date.now()/1000)}`, { 
+                    method: 'HEAD',
                     mode: 'no-cors', 
                     cache: 'no-store',
                     priority: 'low'
                 });
+                
                 pings++;
+                totalDataBytes += 320; 
+                
                 pingDisplay.innerText = pings;
-                log(`Ağ trafiği oluşturuldu (#${pings})`, "info");
+                dataDisplay.innerText = (totalDataBytes / 1024).toFixed(2);
+                
+                log(`Sinyal #${pings} iletildi.`, "info");
                 pingTimeout = setTimeout(sendPing, currentInterval);
             } catch (e) {
-                pingTimeout = setTimeout(sendPing, 3000);
+                pingTimeout = setTimeout(sendPing, 5000);
             }
         }
 
@@ -295,22 +281,22 @@
                 startEngine();
                 mainBtn.className = 'big-btn active';
                 statusIndicator.className = 'status-pill active';
-                statusTxt.innerText = "AKTİF";
+                statusTxt.innerText = "ONLINE";
                 btnTxt.innerText = "DURDUR";
-                modeDisplay.innerText = "7Hz";
                 sendPing();
             } else {
                 active = false;
                 if (pingTimeout) clearTimeout(pingTimeout);
-                if (noiseSource) try { noiseSource.stop(); } catch(e){}
+                if (oscillator) {
+                    try { oscillator.stop(); oscillator.disconnect(); } catch(e){}
+                }
                 audioEl.pause();
                 updateMediaSession();
                 mainBtn.className = 'big-btn idle';
                 statusIndicator.className = 'status-pill idle';
                 statusTxt.innerText = "PASİF";
                 btnTxt.innerText = "BAŞLAT";
-                modeDisplay.innerText = "--";
-                log("Sistem durduruldu.", "error");
+                log("Sistem durduruldu.");
             }
         }
 
@@ -339,11 +325,8 @@
             } else {
                 currentInterval = FOREGROUND_INTERVAL;
                 statusIndicator.className = 'status-pill active';
-                if (pingTimeout) {
-                    clearTimeout(pingTimeout);
-                    sendPing();
-                }
-                if (audioCtx) audioCtx.resume();
+                if (pingTimeout) { clearTimeout(pingTimeout); sendPing(); }
+                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
             }
             updateMediaSession();
         });
