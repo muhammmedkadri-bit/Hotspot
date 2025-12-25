@@ -1,6 +1,8 @@
 {
-  "name": "Hotspot Keep-Alive",
-  "short_name": "HS Keep",
-  "description": "iOS cihazlarda Hotspot'un kapanmasını önlemek için arka planda sessiz ses ve ping trafiği oluşturur.",
-  "requestFramePermissions": []
+  "name": "HS Ultra Pro",
+  "short_name": "HS Ultra",
+  "description": "iOS cihazlarda Hotspot'un kapanmasını önlemek için Geolocation + Audio çapa mekanizması kullanır.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
 }

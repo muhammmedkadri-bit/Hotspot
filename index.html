@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>HS Ultra - Auto Recovery</title>
+    <title>HS Ultra - GPS Anchor Only</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -31,9 +31,6 @@
             overflow: hidden;
         }
 
-        .stealth-active { cursor: none; }
-        .stealth-active .container, .stealth-active .console { opacity: 0; pointer-events: none; }
-
         .safe-top { padding-top: env(safe-area-inset-top); }
         .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 
@@ -44,118 +41,111 @@
             align-items: center;
             justify-content: space-evenly;
             padding: 20px;
-            transition: opacity 0.3s ease;
         }
 
         .status-pill {
             background: var(--surface);
-            padding: 10px 20px;
+            padding: 12px 24px;
             border-radius: 30px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             font-size: 14px;
             font-weight: 700;
             border: 1px solid #333;
         }
 
-        .status-pill.active { border-color: var(--green); color: var(--green); }
-        .status-pill.recovering { border-color: var(--orange); color: var(--orange); }
+        .status-pill.active { border-color: var(--blue); color: var(--blue); }
         .status-pill.idle { border-color: var(--red); color: var(--red); }
 
-        .led { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-        .active .led { animation: blink 1s infinite; }
-        .recovering .led { animation: blink 0.2s infinite; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+        .led { width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+        .active .led { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
 
         .big-btn {
-            width: 180px;
-            height: 180px;
+            width: 220px;
+            height: 220px;
             border-radius: 50%;
-            border: 4px solid var(--surface);
+            border: 8px solid var(--surface);
             background: var(--bg);
             color: #fff;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            font-size: 18px;
+            gap: 12px;
+            font-size: 22px;
             font-weight: 900;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            outline: none;
             -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
 
-        .big-btn.active { border-color: var(--green); box-shadow: 0 0 30px rgba(48, 209, 88, 0.1); }
+        .big-btn.active { border-color: var(--blue); box-shadow: 0 0 50px rgba(10, 132, 255, 0.2); }
         .big-btn.idle { border-color: var(--red); }
 
-        .stats {
+        .stats-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            grid-template-columns: 1fr;
+            gap: 15px;
             width: 100%;
-            max-width: 320px;
+            max-width: 300px;
         }
 
-        .stat-item {
+        .stat-card {
             background: var(--surface);
-            padding: 15px 10px;
-            border-radius: 20px;
+            padding: 20px;
+            border-radius: 24px;
             text-align: center;
             border: 1px solid #222;
         }
 
-        .stat-val { display: block; font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
-        .stat-lbl { font-size: 10px; color: #666; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; }
+        .stat-val { display: block; font-size: 32px; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .stat-lbl { font-size: 11px; color: #666; text-transform: uppercase; margin-top: 6px; letter-spacing: 1px; }
 
         .console {
             height: 120px;
             background: #000;
             border-top: 1px solid #111;
-            padding: 8px;
+            padding: 12px;
             font-family: 'SF Mono', monospace;
-            font-size: 9px;
+            font-size: 10px;
             overflow-y: auto;
             display: flex;
             flex-direction: column-reverse;
         }
 
-        .log { margin-bottom: 3px; color: #333; }
-        .log.success { color: var(--green); }
-        .log.warning { color: var(--orange); }
-        .log.info { color: var(--blue); }
+        .log { margin-bottom: 5px; opacity: 0.7; }
+        .log.success { color: var(--green); opacity: 1; }
+        .log.info { color: var(--blue); opacity: 1; }
+        .log.warning { color: var(--orange); opacity: 1; }
     </style>
 </head>
 <body>
 
     <div class="safe-top"></div>
     
-    <div class="container" id="mainContainer">
+    <div class="container">
         <div id="statusIndicator" class="status-pill idle">
             <div class="led"></div>
-            SİSTEM: <span id="statusTxt">PASİF</span>
+            GPS ÇAPASI: <span id="statusTxt">PASİF</span>
         </div>
 
         <button id="mainBtn" class="big-btn idle">
             <span id="btnTxt">BAŞLAT</span>
         </button>
 
-        <div class="stats">
-            <div class="stat-item">
+        <div class="stats-grid">
+            <div class="stat-card">
                 <span id="pingCounter" class="stat-val">0</span>
-                <span class="stat-lbl">PING (204)</span>
-            </div>
-            <div class="stat-item">
-                <span id="audioState" class="stat-val" style="font-size: 16px;">YOK</span>
-                <span class="stat-lbl">SES MOTORU</span>
+                <span class="stat-lbl">AKTİF AĞ SİNYALİ (PING)</span>
             </div>
         </div>
 
-        <div style="text-align: center; padding: 0 30px;">
-            <p style="font-size: 10px; color: #444; margin: 0; line-height: 1.5;">
-                <b>Spotify Modu:</b> Aktif.<br>
-                Kesintiler sonrası otomatik olarak sinyal akışını sürdürür.
+        <div style="text-align: center; padding: 0 25px;">
+            <p style="font-size: 11px; color: #555; margin: 0; line-height: 1.5;">
+                <b>Pure GPS Anchor Mode:</b> Bu yöntem iOS işlemcisini arka planda uyanık tutmak için GPS takibini kullanır. <br><br>
+                <span style="color: var(--orange);">ÖNEMLİ:</span> Konum iznini <b>"Uygulamayı Kullanırken"</b> olarak seçin ve uygulamayı kapatmayın (arka plana atabilirsiniz).
             </p>
         </div>
     </div>
@@ -163,25 +153,18 @@
     <div id="console" class="console"></div>
     <div class="safe-bottom"></div>
 
-    <audio id="audioElement" loop playsinline></audio>
-
     <script>
         let active = false;
         let pings = 0;
         let pingTimeout = null;
-        let watchdogInterval = null;
-        
-        let audioCtx = null;
-        let bufferSource = null;
+        let geoWatchId = null;
 
         const mainBtn = document.getElementById('mainBtn');
         const statusIndicator = document.getElementById('statusIndicator');
-        const statusTxt = document.getElementById('statusTxt');
+        const statusTxt = document.getElementById('statusTxt">');
         const btnTxt = document.getElementById('btnTxt');
         const pingDisplay = document.getElementById('pingCounter');
-        const audioStateDisplay = document.getElementById('audioState');
         const consoleEl = document.getElementById('console');
-        const audioEl = document.getElementById('audioElement');
 
         function log(msg, type = '') {
             const d = document.createElement('div');
@@ -191,109 +174,44 @@
             if(consoleEl.children.length > 25) consoleEl.lastChild.remove();
         }
 
-        async function initSilentAudio() {
-            try {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
-                    
-                    // AudioContext durumunu izle (Spotify-like behavior için kritik)
-                    audioCtx.onstatechange = () => {
-                        log(`Motor Durumu: ${audioCtx.state}`, "info");
-                        audioStateDisplay.innerText = audioCtx.state.toUpperCase();
-                        if (active && audioCtx.state === 'suspended') {
-                            statusIndicator.className = 'status-pill recovering';
-                            attemptRecovery();
-                        } else if (active && audioCtx.state === 'running') {
-                            statusIndicator.className = 'status-pill active';
-                        }
-                    };
-                }
-                
-                if (audioCtx.state === 'suspended') await audioCtx.resume();
-
-                const silentBuffer = audioCtx.createBuffer(1, 44100, 44100);
-                if (bufferSource) try { bufferSource.stop(); } catch(e) {}
-                
-                bufferSource = audioCtx.createBufferSource();
-                bufferSource.buffer = silentBuffer;
-                bufferSource.loop = true;
-                
-                const gain = audioCtx.createGain();
-                gain.gain.value = 0.001; 
-                
-                const dest = audioCtx.createMediaStreamDestination();
-                bufferSource.connect(gain);
-                gain.connect(audioCtx.destination);
-                gain.connect(dest);
-                
-                audioEl.srcObject = dest.stream;
-                
-                bufferSource.start();
-                await audioEl.play();
-
-                setupMediaSession();
-                log("Sessiz yayın başlatıldı.", "success");
-                return true;
-            } catch (e) {
-                log("Hata: " + e.message, "warning");
+        function startGeoAnchor() {
+            if (!navigator.geolocation) {
+                log("GPS donanımı bulunamadı!", "warning");
                 return false;
             }
-        }
 
-        function setupMediaSession() {
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.metadata = new MediaMetadata({
-                    title: 'Hotspot Keep-Alive',
-                    artist: 'Kesinti Koruması Aktif',
-                    album: 'Sistem Uygulaması'
-                });
-                
-                // Sistemden gelen "oynat" komutunu yakala (Örn: Reels bittiğinde sistem bunu gönderir)
-                navigator.mediaSession.setActionHandler('play', () => {
-                    log("Sistem 'Oynat' komutu gönderdi.", "info");
-                    attemptRecovery();
-                });
-
-                navigator.mediaSession.setActionHandler('pause', () => {
-                    log("Sistem 'Duraklat' komutu gönderdi (Interrupt).", "warning");
-                    // iOS bazen odağı almak için duraklatır, biz 1sn sonra geri almaya çalışırız
-                    setTimeout(attemptRecovery, 1000);
-                });
-                
-                navigator.mediaSession.playbackState = 'playing';
-            }
-        }
-
-        async function attemptRecovery() {
-            if (!active) return;
-            
-            try {
-                if (audioCtx && audioCtx.state === 'suspended') {
-                    await audioCtx.resume();
+            // HighAccuracy: true -> iOS'u daha agresif uyanık tutar
+            geoWatchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    // Pozisyon değişmese bile bu callback tetiklendiği sürece CPU ölmez
+                },
+                (err) => {
+                    log("GPS İzni Gerekli: " + err.message, "warning");
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: Infinity,
+                    maximumAge: 0
                 }
-                if (audioEl.paused) {
-                    await audioEl.play();
-                }
-                log("Otomatik geri kazanım denendi.", "info");
-            } catch (e) {
-                // Sessizce başarısız ol, sistem izin verdiğinde bir sonraki tetikleyici çalışacak
-            }
+            );
+            log("GPS Çapası kilitlendi (CPU Awake).", "info");
+            return true;
         }
 
-        // Kesinti bittiğinde tetiklenmesi için audio elementine özel dinleyiciler
-        audioEl.onpause = () => { if(active) attemptRecovery(); };
-        audioEl.onended = () => { if(active) attemptRecovery(); };
-        audioEl.onstalled = () => { if(active) attemptRecovery(); };
+        function stopGeoAnchor() {
+            if (geoWatchId !== null) {
+                navigator.geolocation.clearWatch(geoWatchId);
+                geoWatchId = null;
+            }
+            log("GPS Çapası bırakıldı.");
+        }
 
         async function sendPing() {
             if (!active) return;
-            
-            // Ping anında sistemi de uyandır
-            await attemptRecovery();
 
             try {
-                const start = Date.now();
-                await fetch(`https://www.google.com/generate_204?t=${start}`, { 
+                // Hotspot'un "data flow" olmadığını düşünmesini engellemek için gerçek trafik
+                await fetch(`https://www.google.com/generate_204?t=${Date.now()}`, { 
                     method: 'HEAD',
                     mode: 'no-cors', 
                     cache: 'no-store'
@@ -301,72 +219,61 @@
                 
                 pings++;
                 pingDisplay.innerText = pings;
-                log(`Sinyal iletildi (#${pings})`, "info");
+                log(`Ağ Trafiği Oluşturuldu (#${pings})`, "success");
                 
                 if (pingTimeout) clearTimeout(pingTimeout);
-                pingTimeout = setTimeout(sendPing, 10000); // 10 saniye dengeli bir süredir
+                pingTimeout = setTimeout(sendPing, 8000); 
             } catch (e) {
-                log("Sinyal bekletiliyor...", "warning");
-                pingTimeout = setTimeout(sendPing, 5000);
+                // Hata durumunda daha hızlı dene (bağlantı kopmuş olabilir)
+                pingTimeout = setTimeout(sendPing, 3000);
             }
         }
 
         function handleToggle() {
             if (!active) {
+                // GPS başlatmayı dene
+                const gpsStarted = startGeoAnchor();
+                
                 active = true;
-                initSilentAudio().then(success => {
-                    if(success) {
-                        mainBtn.className = 'big-btn active';
-                        statusIndicator.className = 'status-pill active';
-                        statusTxt.innerText = "ONLINE";
-                        btnTxt.innerText = "DURDUR";
-                        sendPing();
-                        
-                        // Arka plan bekçisi (Agresif)
-                        if (watchdogInterval) clearInterval(watchdogInterval);
-                        watchdogInterval = setInterval(() => {
-                            if (active) attemptRecovery();
-                        }, 3000);
-                    } else {
-                        active = false;
-                        log("Başlatma başarısız.", "warning");
-                    }
-                });
+                mainBtn.className = 'big-btn active';
+                statusIndicator.className = 'status-pill active';
+                document.getElementById('statusTxt').innerText = "AKTİF";
+                btnTxt.innerText = "DURDUR";
+                
+                sendPing();
+                log("Sistem Yayında.", "info");
             } else {
                 active = false;
+                stopGeoAnchor();
                 if (pingTimeout) clearTimeout(pingTimeout);
-                if (watchdogInterval) clearInterval(watchdogInterval);
-                
-                if (bufferSource) try { bufferSource.stop(); } catch(e){}
-                audioEl.pause();
-                audioEl.srcObject = null;
                 
                 mainBtn.className = 'big-btn idle';
                 statusIndicator.className = 'status-pill idle';
-                statusTxt.innerText = "PASİF";
+                document.getElementById('statusTxt').innerText = "PASİF";
                 btnTxt.innerText = "BAŞLAT";
-                audioStateDisplay.innerText = "YOK";
-                log("Sistem durduruldu.");
+                log("Sistem kapatıldı.");
             }
         }
 
-        // Uygulamaya geri dönüldüğünde her şeyi tazele
+        mainBtn.addEventListener('click', handleToggle);
+
+        // Visibility Change: Uygulamaya dönüldüğünde her ihtimale karşı trafiği dürt
         document.addEventListener('visibilitychange', () => {
-            if (!active) return;
-            if (document.visibilityState === 'visible') {
-                log("Ekran açıldı, sinyal tazeleniyor.", "info");
-                attemptRecovery();
+            if (active && document.visibilityState === 'visible') {
+                log("Uygulama kontrol edildi.");
                 if (pingTimeout) { clearTimeout(pingTimeout); sendPing(); }
             }
         });
 
-        mainBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            handleToggle();
-        });
-
         // PWA Manifest
-        const manifest = { "name": "HS Ultra", "short_name": "HS Ultra", "start_url": ".", "display": "standalone", "background_color": "#000000", "theme_color": "#000000" };
+        const manifest = { 
+            "name": "HS Ultra", 
+            "short_name": "HS Ultra", 
+            "start_url": ".", 
+            "display": "standalone", 
+            "background_color": "#000000", 
+            "theme_color": "#000000" 
+        };
         const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
         const link = document.createElement('link');
         link.rel = 'manifest';
