@@ -166,7 +166,7 @@
 
         <div style="text-align: center; padding: 0 30px;">
             <p id="safetyMsg" style="font-size: 10px; color: #444; margin: 0; line-height: 1.5;">
-                <b>Max Resilient Mod:</b> Aktif.<br>
+                <b>Bellek İçi Ses (RAM):</b> Aktif.<br>
                 Sistem, Instagram/Reels sonrası otomatik kurtarma için her 2s'de bir denetleme yapar.
             </p>
         </div>
@@ -179,9 +179,6 @@
     <audio id="audioElement" loop playsinline></audio>
 
     <script>
-        // 1 saniyelik tamamen sessiz MP3 (Base64) - iOS için en stabil yöntem
-        const SILENT_MP3_B64 = "data:audio/mpeg;base64,SUQzBAAAAAABAFRYWFgAAAASAAADbWFqb3JfYnJhbmQAZGFzaABUWFhYAAAAEgAAA21pbm9yX3ZlcnNpb24AMABUWFhYAAAAHAAAA2NvbXBhdGlibGVfYnJhbmRzAGlzbzZtcDQxAFRTU0UAAAAPAAADYmFzZWxpbmUAbXA0MgAghv///29mZmYAAAAAAAAAAAAA/+7BkAAAUAAADSAAAAABpAAA0gAAAAA57///+f///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/uwZAAAFPAAAA0gAAAAAaQAADSAAAAAAOf///5////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/";
-
         let active = false;
         let pings = 0;
         let totalDataBytes = 0;
@@ -189,8 +186,12 @@
         let watchdogInterval = null;
         let isStealth = false;
         
+        let audioCtx = null;
+        let silentBuffer = null;
+        let bufferSource = null;
+
         const FOREGROUND_INTERVAL = 7000;
-        const BACKGROUND_INTERVAL = 25000; // 30 yerine 25 yaparak iOS throttling marjı bırakıyoruz
+        const BACKGROUND_INTERVAL = 20000; 
         let currentInterval = FOREGROUND_INTERVAL;
 
         const mainBtn = document.getElementById('mainBtn');
@@ -208,78 +209,115 @@
             d.className = `log ${type}`;
             d.innerText = `[${new Date().toLocaleTimeString('tr-TR', {hour12:false})}] ${msg}`;
             consoleEl.prepend(d);
-            if(consoleEl.children.length > 15) consoleEl.lastChild.remove();
+            if(consoleEl.children.length > 20) consoleEl.lastChild.remove();
         }
 
-        async function startSilentAudio() {
+        // Web Audio API ile tamamen sessiz bir buffer oluşturur
+        async function initSilentAudio() {
             try {
-                audioEl.src = SILENT_MP3_B64;
-                await audioEl.play();
-                
-                // MediaSession Yapılandırması (Kritik: iOS'un kilit ekranında bizi canlı görmesi için)
-                if ('mediaSession' in navigator) {
-                    navigator.mediaSession.metadata = new MediaMetadata({
-                        title: 'Hotspot Koruyucu (Ultra Aktif)',
-                        artist: 'Sistem Onarımı Aktif',
-                        album: 'Kesintisiz Akış'
-                    });
-                    
-                    // Kilit ekranından veya başka app bittiğinde "Oynat"a basılması gerekirse otomatik yakala
-                    navigator.mediaSession.setActionHandler('play', async () => {
-                        log("Sistemden 'Play' sinyali geldi, kurtarılıyor.", "info");
-                        await attemptRecovery();
-                    });
-                    
-                    navigator.mediaSession.playbackState = 'playing';
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+                    // 1 saniyelik sessiz buffer
+                    silentBuffer = audioCtx.createBuffer(1, 44100, 44100);
                 }
                 
-                log("Sessiz MP3 döngüsü başlatıldı.", "success");
+                if (audioCtx.state === 'suspended') {
+                    await audioCtx.resume();
+                }
+
+                // BufferSource'u oluştur ve döngüye al
+                if (bufferSource) bufferSource.stop();
+                bufferSource = audioCtx.createBufferSource();
+                bufferSource.buffer = silentBuffer;
+                bufferSource.loop = true;
+                
+                // GainNode ile sesi iyice kıs (donanım bazında sessizlik)
+                const gain = audioCtx.createGain();
+                gain.gain.value = 0.001; 
+                
+                bufferSource.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                // Kritik: MediaStreamDestination ile <audio> elementine bağla (iOS Background Playback için şart)
+                const dest = audioCtx.createMediaStreamDestination();
+                gain.connect(dest);
+                audioEl.srcObject = dest.stream;
+                
+                bufferSource.start();
+                await audioEl.play();
+
+                setupMediaSession();
+                log("Hafıza içi sessiz motor aktif.", "success");
                 return true;
             } catch (e) {
-                log("Ses Hatası: " + e.message, "warning");
+                log("Ses Başlatma Hatası: " + e.message, "warning");
                 return false;
+            }
+        }
+
+        function setupMediaSession() {
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: 'Hotspot Koruyucu (Canlı)',
+                    artist: 'Kesintisiz Arka Plan Trafiği',
+                    album: 'RAM Mode'
+                });
+                
+                navigator.mediaSession.setActionHandler('play', async () => {
+                    log("MediaSession: Oynat komutu alındı.", "info");
+                    attemptRecovery();
+                });
+                
+                navigator.mediaSession.playbackState = 'playing';
             }
         }
 
         async function attemptRecovery() {
             if (!active) return;
             
-            // Eğer audio durmuşsa veya hata vermişse yeniden canlandır
-            if (audioEl.paused) {
-                try {
-                    await audioEl.play();
-                    log("Ses otomatik olarak canlandırıldı.", "success");
-                } catch (e) {
-                    // Bu noktada iOS genellikle bir user gesture bekler ama biz denemeye devam ederiz
+            try {
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    await audioCtx.resume();
+                    log("AudioContext canlandırıldı.", "success");
                 }
+                if (audioEl.paused) {
+                    await audioEl.play();
+                    log("Ses elementi canlandırıldı.", "success");
+                }
+            } catch (e) {
+                // Sessizce başarısız ol, watchdog tekrar deneyecek
             }
         }
 
         async function sendPing() {
             if (!active) return;
             
-            // Ping anında ses durumunu kontrol et
+            // Ping atarken sesi de yokla
             await attemptRecovery();
 
             try {
-                // HEAD isteği ile minimum veri tüketimi
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), 5000);
+
                 await fetch(`https://www.google.com/generate_204?t=${Date.now()}`, { 
                     method: 'HEAD',
                     mode: 'no-cors', 
-                    cache: 'no-store'
+                    cache: 'no-store',
+                    signal: controller.signal
                 });
                 
+                clearTimeout(id);
                 pings++;
-                totalDataBytes += 350; 
+                totalDataBytes += 400; 
                 pingDisplay.innerText = pings;
                 dataDisplay.innerText = (totalDataBytes / 1024).toFixed(2);
                 
-                log(`Sinyal #${pings} başarılı.`, "info");
+                log(`Sinyal iletildi (#${pings})`, "info");
                 
                 if (pingTimeout) clearTimeout(pingTimeout);
                 pingTimeout = setTimeout(sendPing, currentInterval);
             } catch (e) {
-                log("Ağ hatası, tekrar deneniyor...", "warning");
+                log("Sinyal gecikmesi (Ağ/Throttling)", "warning");
                 pingTimeout = setTimeout(sendPing, 5000);
             }
         }
@@ -287,59 +325,55 @@
         function handleToggle() {
             if (!active) {
                 active = true;
-                startSilentAudio().then(success => {
+                initSilentAudio().then(success => {
                     if(success) {
                         mainBtn.className = 'big-btn active';
                         statusIndicator.className = 'status-pill active';
                         statusTxt.innerText = "ONLINE";
                         btnTxt.innerText = "DURDUR";
-                        
-                        // Başlat
                         sendPing();
                         
-                        // Watchdog: Her 2 saniyede bir durumu yokla
                         if (watchdogInterval) clearInterval(watchdogInterval);
                         watchdogInterval = setInterval(() => {
-                            if (active && audioEl.paused) attemptRecovery();
+                            if (active) attemptRecovery();
                         }, 2000);
-                        
                     } else {
                         active = false;
-                        log("Başlatılamadı. Lütfen butona tekrar basın.", "warning");
+                        log("Motor çalıştırılamadı.", "warning");
                     }
                 });
             } else {
                 active = false;
                 if (pingTimeout) clearTimeout(pingTimeout);
                 if (watchdogInterval) clearInterval(watchdogInterval);
+                
+                if (bufferSource) {
+                    try { bufferSource.stop(); } catch(e){}
+                }
                 audioEl.pause();
-                audioEl.src = "";
+                audioEl.srcObject = null;
                 
                 mainBtn.className = 'big-btn idle';
                 statusIndicator.className = 'status-pill idle';
                 statusTxt.innerText = "PASİF";
                 btnTxt.innerText = "BAŞLAT";
-                log("Sistem kullanıcı tarafından durduruldu.");
+                log("Sistem kapatıldı.");
             }
         }
 
-        // Görünürlük değişikliği (Uygulamaya geri dönüldüğünde)
         document.addEventListener('visibilitychange', () => {
             if (!active) return;
-            
             if (document.visibilityState === 'visible') {
-                log("Uygulama aktif, motor tazeleniyor.", "info");
+                log("Uygulama ön planda.", "info");
                 currentInterval = FOREGROUND_INTERVAL;
                 attemptRecovery();
-                // Bekleyen bir ping varsa hemen tetikle
                 if (pingTimeout) { clearTimeout(pingTimeout); sendPing(); }
             } else {
                 currentInterval = BACKGROUND_INTERVAL;
-                log("Arka plan koruma moduna geçildi.");
+                log("Arka plan koruma devrede.");
             }
         });
 
-        // Stealth Modu
         stealthBtn.addEventListener('click', () => {
             isStealth = !isStealth;
             document.body.classList.toggle('stealth-active', isStealth);
@@ -357,10 +391,6 @@
             handleToggle();
         });
 
-        // iOS bazen audio bittiğinde event fırlatmaz ama loop garanti olsun
-        audioEl.onended = () => { if(active) audioEl.play(); };
-
-        // Manifest Injection
         const manifest = { "name": "HS Ultra", "short_name": "HS Ultra", "start_url": ".", "display": "standalone", "background_color": "#000000", "theme_color": "#000000" };
         const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
         const link = document.createElement('link');
