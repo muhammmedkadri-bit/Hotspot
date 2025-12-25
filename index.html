@@ -147,15 +147,15 @@
         </div>
 
         <div style="font-size: 11px; color: #666; text-align: center; line-height: 1.6; max-width: 80%;">
-            <strong>iPhone İpucu:</strong> Denetim Merkezi'nde görünmezse ses seviyesini 1 kademe artırın ve Düşük Güç Modunu kapatın.
+            <strong>Önemli:</strong> Denetim Merkezi'nde görünmezse ses seviyesini 1 kademe açın. Uygulamanın <b>Ana Ekrana Eklendiğinden</b> emin olun.
         </div>
     </div>
 
     <div id="console" class="console"></div>
     <div class="safe-bottom"></div>
 
-    <!-- 5 Saniyelik Daha Güçlü Sessiz MP3 -->
-    <audio id="audioElement" loop playsinline preload="auto">
+    <!-- Daha uzun ve 'gerçek' sessiz MP3 (10 saniye) -->
+    <audio id="audioElement" loop playsinline preload="auto" style="display:none">
         <source src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGFtZTMuMTAwAKAAAAAAAAAAAAAA//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA=" type="audio/mpeg">
     </audio>
 
@@ -183,8 +183,13 @@
             if(consoleEl.children.length > 30) consoleEl.lastChild.remove();
         }
 
-        async function initWebAudio() {
+        async function setupAudio() {
             try {
+                // 1. HTML5 Audio Playback
+                audioEl.volume = 0.5; // Ses 0 olursa iOS bazen medyayı susturur
+                const playPromise = audioEl.play();
+                
+                // 2. Web Audio API Engine
                 if (!audioCtx) {
                     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 }
@@ -192,10 +197,10 @@
                     await audioCtx.resume();
                 }
 
-                // Inaudible 20Hz sine wave to keep audio engine alive
+                // Kulakla duyulmayan ama işlemciyi uyanık tutan 15Hz dalga
                 oscNode = audioCtx.createOscillator();
                 oscNode.type = 'sine';
-                oscNode.frequency.setValueAtTime(20, audioCtx.currentTime); 
+                oscNode.frequency.setValueAtTime(15, audioCtx.currentTime); 
                 
                 const gain = audioCtx.createGain();
                 gain.gain.setValueAtTime(0.001, audioCtx.currentTime); 
@@ -204,9 +209,14 @@
                 gain.connect(audioCtx.destination);
                 oscNode.start();
                 
-                log("Audio Engine tescil edildi", "success");
+                if (playPromise !== undefined) {
+                    playPromise.then(() => log("Media Session AKTİF", "success"))
+                               .catch(() => log("Ses Kanalı Beklemede", "info"));
+                }
+                
+                updateMediaSession();
             } catch (e) {
-                log("Audio Engine Hatası", "error");
+                log("Ses Hatası: " + e.message, "error");
             }
         }
 
@@ -214,77 +224,56 @@
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: 'Hotspot Pro Ultra',
-                    artist: 'Sistem Koruma Altında',
-                    album: `Trafik: ${pings} Ping`,
-                    artwork: [
-                        { src: 'https://www.google.com/favicon.ico', sizes: '512x512', type: 'image/png' }
-                    ]
+                    artist: 'Keep-Alive Aktif',
+                    album: `Sinyal: ${pings}`,
+                    artwork: [{ src: 'https://www.google.com/favicon.ico', sizes: '512x512', type: 'image/png' }]
                 });
-                
                 navigator.mediaSession.playbackState = active ? 'playing' : 'paused';
-
-                // iOS Denetim Merkezi Kontrolleri
-                navigator.mediaSession.setActionHandler('play', () => handleStart());
-                navigator.mediaSession.setActionHandler('pause', () => stop());
+                
+                navigator.mediaSession.setActionHandler('play', () => { if(!active) handleStart(); });
+                navigator.mediaSession.setActionHandler('pause', () => { if(active) stop(); });
             }
         }
 
         async function pulse() {
             if (!active) return;
             try {
-                // iPhone WiFi kanalını meşgul tutmak için agresif fetch
-                await fetch(`https://www.google.com/generate_204?id=${Date.now()}`, { 
+                // iOS Hotspot'u uyanık tutan ağ trafiği
+                await fetch(`https://www.google.com/generate_204?t=${Date.now()}`, { 
                     mode: 'no-cors', 
-                    cache: 'no-store',
-                    priority: 'high'
+                    cache: 'no-store'
                 });
                 pings++;
                 pingDisplay.innerText = pings;
                 timeDisplay.innerText = new Date().toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
                 
-                // Her pingde Denetim Merkezini "canlı" tutmak için re-sync
-                if (pings % 5 === 0) updateMediaSession();
+                // Medya oturumunu canlı tutmak için periyodik güncelleme
+                if (pings % 10 === 0) updateMediaSession();
                 
-                log(`Veri akışı sağlandı (#${pings})`, "info");
+                log(`Sinyal iletildi (#${pings})`, "info");
             } catch (e) {
-                log("Sinyal kesintisi!", "error");
+                log("Sinyal kesildi, deniyor...", "error");
             }
         }
 
         async function handleStart() {
-            // KRİTİK: iOS'ta play() komutu EN BAŞTA ve ASENKRON OLMAYAN bir şekilde çağrılmalı
-            const startAttempt = audioEl.play();
+            // KRİTİK: Play komutu her şeyden önce gelmeli
+            audioEl.play(); 
             
-            log("Başlatılıyor...");
             active = true;
+            log("Sistem başlatılıyor...");
 
-            try {
-                if (startAttempt !== undefined) {
-                    startAttempt.then(() => {
-                        log("Ses Kanalı: AÇIK", "success");
-                    }).catch(err => {
-                        log("Ses Kanalı Hatası", "error");
-                    });
-                }
+            await setupAudio();
 
-                await initWebAudio();
-                updateMediaSession();
-
-                // 4 saniyelik periyot iOS Hotspot için idealdir
-                if (interval) clearInterval(interval);
-                interval = setInterval(pulse, 4000);
-                
-                mainBtn.className = 'big-btn active';
-                statusIndicator.className = 'status-pill active';
-                statusTxt.innerText = "ONLINE";
-                btnTxt.innerText = "DURDUR";
-                
-                log("Sistem Koruma Modunda!", "success");
-                pulse();
-            } catch (e) {
-                log("Kritik Hata: " + e.message, "error");
-                stop();
-            }
+            if (interval) clearInterval(interval);
+            interval = setInterval(pulse, 4500); // 4.5 saniye iOS için güvenli aralıktır
+            
+            mainBtn.className = 'big-btn active';
+            statusIndicator.className = 'status-pill active';
+            statusTxt.innerText = "ONLINE";
+            btnTxt.innerText = "DURDUR";
+            
+            pulse();
         }
 
         function stop() {
@@ -302,7 +291,7 @@
             statusTxt.innerText = "PASİF";
             btnTxt.innerText = "BAŞLAT";
             
-            log("Sistem durduruldu.");
+            log("Sistem durduruldu.", "error");
         }
 
         mainBtn.addEventListener('click', (e) => {
@@ -311,7 +300,12 @@
             else stop();
         });
 
-        // iPhone PWA manifestini her zaman taze tut
+        // Manuel loop garantisi
+        audioEl.addEventListener('ended', () => {
+            if (active) audioEl.play();
+        });
+
+        // PWA Manifest
         const manifest = {
             "name": "Hotspot Pro Ultra",
             "short_name": "HS Ultra",
@@ -326,7 +320,7 @@
         link.href = URL.createObjectURL(blob);
         document.head.appendChild(link);
         
-        // Uygulama arka plana atılsa da Web Audio'yu canlı tut
+        // Background focus re-init
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible' && active && audioCtx) {
                 audioCtx.resume();
