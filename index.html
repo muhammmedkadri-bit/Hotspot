@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>HS Ultra - GPS Anchor Only</title>
+    <title>HS Ultra - GPS Anchor</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -79,8 +79,10 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             -webkit-tap-highlight-color: transparent;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            cursor: pointer;
         }
 
+        .big-btn:active { transform: scale(0.95); opacity: 0.8; }
         .big-btn.active { border-color: var(--blue); box-shadow: 0 0 50px rgba(10, 132, 255, 0.2); }
         .big-btn.idle { border-color: var(--red); }
 
@@ -115,9 +117,10 @@
             flex-direction: column-reverse;
         }
 
-        .log { margin-bottom: 5px; opacity: 0.7; }
+        .log { margin-bottom: 5px; opacity: 0.8; }
         .log.success { color: var(--green); opacity: 1; }
         .log.info { color: var(--blue); opacity: 1; }
+        .log.error { color: var(--red); opacity: 1; }
         .log.warning { color: var(--orange); opacity: 1; }
     </style>
 </head>
@@ -128,7 +131,7 @@
     <div class="container">
         <div id="statusIndicator" class="status-pill idle">
             <div class="led"></div>
-            GPS ÇAPASI: <span id="statusTxt">PASİF</span>
+            SİSTEM: <span id="statusTxt">BEKLEMEDE</span>
         </div>
 
         <button id="mainBtn" class="big-btn idle">
@@ -138,14 +141,15 @@
         <div class="stats-grid">
             <div class="stat-card">
                 <span id="pingCounter" class="stat-val">0</span>
-                <span class="stat-lbl">AKTİF AĞ SİNYALİ (PING)</span>
+                <span class="stat-lbl">AKTİF PING TRAFİĞİ</span>
             </div>
         </div>
 
         <div style="text-align: center; padding: 0 25px;">
             <p style="font-size: 11px; color: #555; margin: 0; line-height: 1.5;">
-                <b>Pure GPS Anchor Mode:</b> Bu yöntem iOS işlemcisini arka planda uyanık tutmak için GPS takibini kullanır. <br><br>
-                <span style="color: var(--orange);">ÖNEMLİ:</span> Konum iznini <b>"Uygulamayı Kullanırken"</b> olarak seçin ve uygulamayı kapatmayın (arka plana atabilirsiniz).
+                <b>Pure GPS Anchor Mode:</b> iOS'u uyanık tutmak için GPS takibi kullanılır. <br><br>
+                <span style="color: var(--orange);">ADIM 1:</span> Başlat'a basın.<br>
+                <span style="color: var(--orange);">ADIM 2:</span> Konum iznine <b>"İzin Ver"</b> deyin.
             </p>
         </div>
     </div>
@@ -161,7 +165,7 @@
 
         const mainBtn = document.getElementById('mainBtn');
         const statusIndicator = document.getElementById('statusIndicator');
-        const statusTxt = document.getElementById('statusTxt">');
+        const statusTxt = document.getElementById('statusTxt'); // Fixed ID
         const btnTxt = document.getElementById('btnTxt');
         const pingDisplay = document.getElementById('pingCounter');
         const consoleEl = document.getElementById('console');
@@ -174,19 +178,36 @@
             if(consoleEl.children.length > 25) consoleEl.lastChild.remove();
         }
 
+        async function requestLocationPermission() {
+            return new Promise((resolve, reject) => {
+                log("Konum izni isteniyor...", "info");
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        log("Konum izni alındı.", "success");
+                        resolve(true);
+                    },
+                    (err) => {
+                        log("İzin reddedildi: " + err.message, "error");
+                        resolve(false);
+                    },
+                    { enableHighAccuracy: true, timeout: 5000 }
+                );
+            });
+        }
+
         function startGeoAnchor() {
             if (!navigator.geolocation) {
-                log("GPS donanımı bulunamadı!", "warning");
-                return false;
+                log("Tarayıcı GPS desteklemiyor!", "error");
+                return;
             }
 
-            // HighAccuracy: true -> iOS'u daha agresif uyanık tutar
             geoWatchId = navigator.geolocation.watchPosition(
                 (pos) => {
-                    // Pozisyon değişmese bile bu callback tetiklendiği sürece CPU ölmez
+                    // Sessiz takip
                 },
                 (err) => {
-                    log("GPS İzni Gerekli: " + err.message, "warning");
+                    log("GPS Hatası: " + err.message, "error");
+                    if (active) handleToggle(); // Hata varsa durdur
                 },
                 {
                     enableHighAccuracy: true,
@@ -194,83 +215,89 @@
                     maximumAge: 0
                 }
             );
-            log("GPS Çapası kilitlendi (CPU Awake).", "info");
-            return true;
+            log("GPS Çapası aktif.", "info");
         }
 
         function stopGeoAnchor() {
             if (geoWatchId !== null) {
                 navigator.geolocation.clearWatch(geoWatchId);
                 geoWatchId = null;
+                log("GPS Çapası durduruldu.");
             }
-            log("GPS Çapası bırakıldı.");
         }
 
         async function sendPing() {
             if (!active) return;
 
             try {
-                // Hotspot'un "data flow" olmadığını düşünmesini engellemek için gerçek trafik
-                await fetch(`https://www.google.com/generate_204?t=${Date.now()}`, { 
-                    method: 'HEAD',
+                // 'no-cors' ile Google 204 endpointine istek atarak ağ trafiği yaratır
+                await fetch(`https://www.google.com/generate_204?nocache=${Date.now()}`, { 
+                    method: 'GET',
                     mode: 'no-cors', 
                     cache: 'no-store'
                 });
                 
                 pings++;
                 pingDisplay.innerText = pings;
-                log(`Ağ Trafiği Oluşturuldu (#${pings})`, "success");
                 
                 if (pingTimeout) clearTimeout(pingTimeout);
-                pingTimeout = setTimeout(sendPing, 8000); 
+                pingTimeout = setTimeout(sendPing, 5000); // 5 saniyede bir ping
             } catch (e) {
-                // Hata durumunda daha hızlı dene (bağlantı kopmuş olabilir)
-                pingTimeout = setTimeout(sendPing, 3000);
+                log("Ping hatası, yeniden deneniyor...", "warning");
+                pingTimeout = setTimeout(sendPing, 2000);
             }
         }
 
-        function handleToggle() {
+        async function handleToggle() {
             if (!active) {
-                // GPS başlatmayı dene
-                const gpsStarted = startGeoAnchor();
+                // iOS'ta izin penceresini tetiklemek için önce getCurrentPosition gerekir
+                const hasPermission = await requestLocationPermission();
                 
-                active = true;
-                mainBtn.className = 'big-btn active';
-                statusIndicator.className = 'status-pill active';
-                document.getElementById('statusTxt').innerText = "AKTİF";
-                btnTxt.innerText = "DURDUR";
-                
-                sendPing();
-                log("Sistem Yayında.", "info");
+                if (hasPermission) {
+                    active = true;
+                    startGeoAnchor();
+                    sendPing();
+
+                    mainBtn.classList.remove('idle');
+                    mainBtn.classList.add('active');
+                    statusIndicator.classList.remove('idle');
+                    statusIndicator.classList.add('active');
+                    
+                    statusTxt.innerText = "AKTİF";
+                    btnTxt.innerText = "DURDUR";
+                    log("Keep-Alive Başlatıldı.", "success");
+                }
             } else {
                 active = false;
                 stopGeoAnchor();
                 if (pingTimeout) clearTimeout(pingTimeout);
                 
-                mainBtn.className = 'big-btn idle';
-                statusIndicator.className = 'status-pill idle';
-                document.getElementById('statusTxt').innerText = "PASİF";
+                mainBtn.classList.remove('active');
+                mainBtn.classList.add('idle');
+                statusIndicator.classList.remove('active');
+                statusIndicator.classList.add('idle');
+                
+                statusTxt.innerText = "BEKLEMEDE";
                 btnTxt.innerText = "BAŞLAT";
-                log("Sistem kapatıldı.");
+                log("Sistem Durduruldu.");
             }
         }
 
         mainBtn.addEventListener('click', handleToggle);
 
-        // Visibility Change: Uygulamaya dönüldüğünde her ihtimale karşı trafiği dürt
+        // Uygulama arka plandayken de çalışması için session'ı taze tut
         document.addEventListener('visibilitychange', () => {
             if (active && document.visibilityState === 'visible') {
-                log("Uygulama kontrol edildi.");
-                if (pingTimeout) { clearTimeout(pingTimeout); sendPing(); }
+                log("Uygulama tazelendi.", "info");
             }
         });
 
-        // PWA Manifest
+        // Manifest injection
         const manifest = { 
-            "name": "HS Ultra", 
+            "name": "HS Ultra Pro", 
             "short_name": "HS Ultra", 
-            "start_url": ".", 
             "display": "standalone", 
+            "start_url": ".",
             "background_color": "#000000", 
             "theme_color": "#000000" 
         };
