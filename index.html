@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hotspot Pro Ultra - v3.0</title>
+    <title>Hotspot Pro Ultra</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="HS Ultra">
+    <link rel="apple-touch-icon" href="https://www.google.com/favicon.ico">
     
     <style>
         :root {
@@ -16,7 +17,6 @@
             --green: #30d158;
             --red: #ff453a;
             --blue: #0a84ff;
-            --orange: #ff9f0a;
         }
 
         body {
@@ -53,7 +53,6 @@
             gap: 10px;
             font-weight: 700;
             border: 1px solid #333;
-            transition: all 0.3s ease;
         }
 
         .status-pill.active { border-color: var(--green); color: var(--green); }
@@ -75,16 +74,15 @@
             align-items: center;
             justify-content: center;
             gap: 15px;
-            font-size: 22px;
+            font-size: 24px;
             font-weight: 900;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             outline: none;
             -webkit-tap-highlight-color: transparent;
-            z-index: 10;
         }
 
-        .big-btn.active { border-color: var(--green); box-shadow: 0 0 30px rgba(48,209,88,0.2); }
-        .big-btn.idle { border-color: var(--red); opacity: 0.8; }
+        .big-btn.active { border-color: var(--green); transform: scale(1.05); }
+        .big-btn.idle { border-color: var(--red); }
         .big-btn:active { transform: scale(0.95); }
 
         .stats {
@@ -100,14 +98,13 @@
             padding: 15px;
             border-radius: 20px;
             text-align: center;
-            border: 1px solid #222;
         }
 
         .stat-val { display: block; font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
-        .stat-lbl { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-top: 5px; }
+        .stat-lbl { font-size: 10px; color: #888; text-transform: uppercase; margin-top: 5px; }
 
         .console {
-            height: 110px;
+            height: 120px;
             background: #080808;
             border-top: 1px solid #222;
             padding: 12px;
@@ -116,21 +113,11 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column-reverse;
-            gap: 4px;
         }
 
-        .log { border-left: 2px solid #333; padding-left: 8px; line-height: 1.4; color: #555; }
+        .log { border-left: 2px solid #333; padding-left: 8px; margin-bottom: 4px; }
         .log.success { color: var(--green); border-left-color: var(--green); }
-        .log.info { color: var(--blue); border-left-color: var(--blue); }
-        
-        .mode-tag {
-            font-size: 10px;
-            background: #222;
-            padding: 4px 12px;
-            border-radius: 12px;
-            color: #888;
-            margin-top: 10px;
-        }
+        .log.error { color: var(--red); border-left-color: var(--red); }
     </style>
 </head>
 <body>
@@ -140,50 +127,55 @@
     <div class="container">
         <div id="statusIndicator" class="status-pill idle">
             <div class="led"></div>
-            SYSTEM: <span id="statusTxt">OFFLINE</span>
+            HOTSPOT: <span id="statusTxt">PASİF</span>
         </div>
 
         <button id="mainBtn" class="big-btn idle">
-            <svg width="56" height="56" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 7h2v10h-2z"/>
-            </svg>
             <span id="btnTxt">BAŞLAT</span>
         </button>
 
         <div class="stats">
             <div class="stat-item">
                 <span id="pingCounter" class="stat-val">0</span>
-                <span class="stat-lbl">Veri Akışı</span>
+                <span class="stat-lbl">Ping</span>
             </div>
             <div class="stat-item">
                 <span id="lastTime" class="stat-val">--:--</span>
-                <span class="stat-lbl">Son Sinyal</span>
+                <span class="stat-lbl">Zaman</span>
             </div>
-        </div>
-
-        <div style="text-align: center;">
-            <div id="modeTag" class="mode-tag">Bekleme Modu</div>
-            <p style="font-size: 10px; color: #444; margin-top: 8px; line-height: 1.4;">
-                Denetim Merkezi'nde "Hotspot Keep-Alive" görmelisiniz.<br>
-                Görmüyorsanız ses seviyesini 1 kademe artırın.
-            </p>
         </div>
     </div>
 
     <div id="console" class="console"></div>
     <div class="safe-bottom"></div>
 
-    <!-- Daha uzun bir sessiz MP3 (10 saniye) -->
     <audio id="audioElement" loop playsinline preload="auto">
         <source src="data:audio/mpeg;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGFtZTMuMTAwAKAAAAAAAAAAAAAA//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA=" type="audio/mpeg">
     </audio>
 
     <script>
+        // PWA Manifest Injector
+        const manifest = {
+            "name": "Hotspot Keep-Alive",
+            "short_name": "HS Keep",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#000000",
+            "theme_color": "#000000"
+        };
+        const stringManifest = JSON.stringify(manifest);
+        const blob = new Blob([stringManifest], {type: 'application/json'});
+        const manifestURL = URL.createObjectURL(blob);
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = manifestURL;
+        document.head.appendChild(link);
+
         let active = false;
         let pings = 0;
-        let timer = null;
+        let interval = null;
         let audioCtx = null;
-        let whiteNoise = null;
+        let noiseSource = null;
 
         const mainBtn = document.getElementById('mainBtn');
         const statusIndicator = document.getElementById('statusIndicator');
@@ -193,56 +185,44 @@
         const timeDisplay = document.getElementById('lastTime');
         const consoleEl = document.getElementById('console');
         const audioEl = document.getElementById('audioElement');
-        const modeTag = document.getElementById('modeTag');
 
         function log(msg, type = '') {
             const d = document.createElement('div');
             d.className = `log ${type}`;
-            const time = new Date().toLocaleTimeString('tr-TR', {hour12:false});
-            d.innerHTML = `<span style="opacity:0.4">${time}</span> ${msg}`;
+            d.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
             consoleEl.prepend(d);
-            if(consoleEl.children.length > 25) consoleEl.lastChild.remove();
+            if(consoleEl.children.length > 20) consoleEl.lastChild.remove();
         }
 
-        // Web Audio API ile 'Sessiz Beyaz Gürültü' üretir
-        // Bu, iOS'un ses kanalını gerçekten meşgul tutmasını sağlar
-        async function startSilentNoise() {
+        async function initAudioEngine() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
             if (audioCtx.state === 'suspended') await audioCtx.resume();
 
-            const bufferSize = 2 * audioCtx.sampleRate;
-            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            const output = noiseBuffer.getChannelData(0);
-            
-            for (let i = 0; i < bufferSize; i++) {
-                // Çok düşük seviyeli rastgele gürültü (duyulmaz ama işlemciyi meşgul eder)
-                output[i] = Math.random() * 0.001;
+            // Sadece sessiz MP3 yetmez, gerçek bir ses sinyali üretmeliyiz
+            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 1, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < data.length; i++) {
+                data[i] = Math.random() * 0.005; // Çok düşük beyaz gürültü (duyulmaz ama aktiftir)
             }
 
-            whiteNoise = audioCtx.createBufferSource();
-            whiteNoise.buffer = noiseBuffer;
-            whiteNoise.loop = true;
-            
-            const gainNode = audioCtx.createGain();
-            gainNode.gain.value = 0.01; // Duyulmaz seviye
-
-            whiteNoise.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            whiteNoise.start();
-            log("AudioHeartbeat: AKTİF", "info");
+            noiseSource = audioCtx.createBufferSource();
+            noiseSource.buffer = buffer;
+            noiseSource.loop = true;
+            const gain = audioCtx.createGain();
+            gain.gain.value = 0.01;
+            noiseSource.connect(gain);
+            gain.connect(audioCtx.destination);
+            noiseSource.start();
         }
 
         function updateMediaSession() {
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: 'Hotspot Keep-Alive',
-                    artist: 'Network Traffic Active',
-                    album: `Pings: ${pings}`,
-                    artwork: [
-                        { src: 'https://www.google.com/favicon.ico', sizes: '128x128', type: 'image/png' }
-                    ]
+                    artist: 'Sistem Aktif',
+                    album: `Veri Trafiği: ${pings}`,
                 });
                 navigator.mediaSession.playbackState = active ? 'playing' : 'paused';
             }
@@ -250,80 +230,58 @@
 
         async function pulse() {
             if (!active) return;
-
-            const ts = Date.now();
             try {
-                // iOS'un WiFi/Hücresel uyku moduna geçmesini engellemek için çift trafik
-                await Promise.all([
-                    fetch(`https://www.google.com/generate_204?cb=${ts}`, { mode: 'no-cors', cache: 'no-store' }),
-                    fetch(`https://connectivitycheck.gstatic.com/generate_204?cb=${ts}`, { mode: 'no-cors', cache: 'no-store' })
-                ]);
-
+                // Cache-busting fetch
+                await fetch(`https://www.google.com/generate_204?v=${Date.now()}`, { mode: 'no-cors', cache: 'no-store' });
                 pings++;
                 pingDisplay.innerText = pings;
-                timeDisplay.innerText = new Date().toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-                
-                // Her pingde media session tazele
+                timeDisplay.innerText = new Date().toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
                 updateMediaSession();
-                
-                log(`Sinyal iletildi (#${pings})`, "success");
+                log("Sinyal gönderildi", "success");
             } catch (e) {
-                log("Sinyal zayıf", "info");
+                log("Ağ hatası", "error");
             }
         }
 
         async function start() {
             try {
-                active = true;
-                
-                // 1. Audio Element (Kritik: Kullanıcı etkileşimi içinde olmalı)
+                // Önce ses dosyasını başlat ve bekle (RACE CONDITION FIX)
+                log("Ses motoru başlatılıyor...");
                 await audioEl.play();
                 
-                // 2. Web Audio Heartbeat
-                await startSilentNoise();
+                await initAudioEngine();
+                active = true;
                 
-                // 3. Media Session Kilidi
                 updateMediaSession();
-
-                // 4. Ping Döngüsü (iOS için 3 saniye ideal dengedir)
-                timer = setInterval(pulse, 3000);
+                interval = setInterval(pulse, 4000);
                 
-                updateUI();
-                log("Koruma kalkanı devrede", "info");
+                mainBtn.className = 'big-btn active';
+                statusIndicator.className = 'status-pill active';
+                statusTxt.innerText = "AKTİF";
+                btnTxt.innerText = "DURDUR";
+                
+                log("Koruma başlatıldı", "success");
                 pulse();
             } catch (e) {
-                log("Başlatma hatası: " + e.message, "error");
-                stop();
+                log("Hata: " + e.message, "error");
             }
         }
 
         function stop() {
             active = false;
+            if (interval) clearInterval(interval);
             audioEl.pause();
-            if (whiteNoise) {
-                try { whiteNoise.stop(); whiteNoise.disconnect(); } catch(e) {}
-                whiteNoise = null;
+            if (noiseSource) {
+                try { noiseSource.stop(); } catch(e) {}
             }
-            if (timer) clearInterval(timer);
             updateMediaSession();
-            updateUI();
-            log("Koruma durduruldu.");
-        }
-
-        function updateUI() {
-            if (active) {
-                mainBtn.className = 'big-btn active';
-                statusIndicator.className = 'status-pill active';
-                statusTxt.innerText = "ONLINE";
-                btnTxt.innerText = "DURDUR";
-                modeTag.innerText = "Yüksek Performans";
-            } else {
-                mainBtn.className = 'big-btn idle';
-                statusIndicator.className = 'status-pill idle';
-                statusTxt.innerText = "OFFLINE";
-                btnTxt.innerText = "BAŞLAT";
-                modeTag.innerText = "Bekleme Modu";
-            }
+            
+            mainBtn.className = 'big-btn idle';
+            statusIndicator.className = 'status-pill idle';
+            statusTxt.innerText = "PASİF";
+            btnTxt.innerText = "BAŞLAT";
+            
+            log("Sistem durduruldu.");
         }
 
         mainBtn.addEventListener('click', () => {
@@ -331,11 +289,10 @@
             else stop();
         });
 
-        // iOS Arka Plan Yönetimi
+        // iOS ekran kilitlendiğinde ses motorunu canlı tut
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible' && active) {
-                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-                updateMediaSession();
+            if (document.visibilityState === 'visible' && active && audioCtx) {
+                audioCtx.resume();
             }
         });
     </script>
